@@ -1,0 +1,23 @@
+node_modules/
+.vitepress/dist/
+.vitepress/cache/
+*.log
+.DS_Store
+.idea/
+.vscode/
+
+# ---- 公开发布边界（2026-10-22 发布前清理时新增，只加行、未改动上面已有规则）----
+# 本地实验与实测证据目录：内含本机绝对路径与临时产物，
+# 既不是课程依赖，也不是正式交付内容（课程引用的脚本缺口写在
+# docs/project-file-inventory.md 第 8.2 节）。
+.scratch/
+
+# 过期的手工打包产物：内容早于当前源码，不能当交付物（判断方法见
+# docs/project-file-inventory.md 第 11 节）。
+learns-site.zip
+
+# 单次任务交接记录：面向当时的会话，含本机路径，已过时（见 README 第十一节）。
+TASK-HANDOFF.md
+
+# Generated build archive
+.vitepress/dist.zip

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>我的学习档案 · HTML 阶段项目参考实现</title>
+<meta name="description" content="HTML 领域阶段项目「语义化个人学习档案页」的参考实现，用于对照学习语义标签、文档大纲与无障碍结构。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<a href="#main-content" class="skip-link">跳到主要内容</a>
+
+<header class="site-header">
+  <p class="site-title"><a href="index.html">我的学习档案</a></p>
+  <nav aria-label="主导航">
+    <ul role="list">
+      <li><a href="index.html" aria-current="page">档案首页</a></li>
+      <li><a href="#progress">学习进度</a></li>
+      <li><a href="#plan">学习计划</a></li>
+      <li><a href="#notes">学习笔记</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main id="main-content" tabindex="-1">
+
+  <article aria-labelledby="profile-title">
+    <header>
+      <h1 id="profile-title">关于这份档案</h1>
+      <p class="meta">
+        建立于 <time datetime="2026-10-16">2026 年 10 月 16 日</time>
+        · 最近更新 <time datetime="2026-10-16">2026 年 10 月 16 日</time>
+      </p>
+    </header>
+
+    <p>
+      这是我学习全栈开发的个人档案页。它同时是 HTML 领域阶段项目的参考实现：
+      整个页面只用 <abbr title="HyperText Markup Language">HTML</abbr> 和
+      <abbr title="Cascading Style Sheets">CSS</abbr> 写成，没有一行 JavaScript，
+      没有构建工具，没有任何依赖。
+    </p>
+
+    <p>
+      把 <code>style.css</code> 的 <code>&lt;link&gt;</code> 注释掉再刷新，
+      你会看到一个没有样式但<strong>顺序完全正确、内容完全可读</strong>的页面。
+      这是检验语义结构是否正确的最直接方法。
+    </p>
+
+    <section aria-labelledby="goal-title">
+      <h2 id="goal-title">学习目标</h2>
+      <p>短期目标是能独立把一个想法做成上线可访问的产品。为此需要掌握：</p>
+      <ul>
+        <li>用正确的语义结构表达内容，而不是靠 <code>&lt;div&gt;</code> 堆砌</li>
+        <li>用 CSS 控制呈现，让结构与样式彻底分离</li>
+        <li>用 TypeScript 建立可维护的前端与后端代码</li>
+        <li>把成品部署到自己的服务器上并长期维护</li>
+      </ul>
+    </section>
+
+    <footer>
+      <p class="meta">本条档案涉及的主题：</p>
+      <ul role="list" class="tag-list">
+        <li>HTML</li>
+        <li>CSS</li>
+        <li>学习方法</li>
+      </ul>
+    </footer>
+  </article>
+
+  <section id="progress" aria-labelledby="progress-title">
+    <h2 id="progress-title">学习进度</h2>
+
+    <p>
+      下表记录各领域的第一期进度。<strong>计划章节</strong>是当前规划的章节数，
+      会随课程建设变化，因此这里的数字仅作示例。
+    </p>
+
+    <div class="table-wrap" tabindex="0" role="region" aria-label="各领域学习进度表，可横向滚动">
+      <table>
+        <caption>2026 年 10 月各领域学习进度</caption>
+        <colgroup>
+          <col class="col-domain">
+          <col span="3" class="col-num">
+          <col class="col-note">
+        </colgroup>
+        <thead>
+          <tr>
+            <th scope="col">领域</th>
+            <th scope="col" abbr="计划">计划章节</th>
+            <th scope="col" abbr="完成">已完成</th>
+            <th scope="col" abbr="完成率">完成率</th>
+            <th scope="col">备注</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">HTML</th>
+            <td class="num">11</td>
+            <td class="num">11</td>
+            <td class="num">100%</td>
+            <td>含阶段项目，已完成闭环</td>
+          </tr>
+          <tr>
+            <th scope="row">CSS</th>
+            <td class="num">18</td>
+            <td class="num">0</td>
+            <td class="num">0%</td>
+            <td>大纲已定，正文待写</td>
+          </tr>
+          <tr>
+            <th scope="row">TypeScript</th>
+            <td class="num">16</td>
+            <td class="num">0</td>
+            <td class="num">0%</td>
+            <td>需先完成 JavaScript 外链课程</td>
+          </tr>
+          <tr>
+            <th scope="row">Vue 3</th>
+            <td class="num">12</td>
+            <td class="num">0</td>
+            <td class="num">0%</td>
+            <td>依赖 TypeScript</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <th scope="row">合计</th>
+            <td class="num">57</td>
+            <td class="num">11</td>
+            <td class="num">19%</td>
+            <td>第一期共 10 个领域</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <p class="note">
+      表格中「完成率」列的数字右对齐，并启用
+      <code>font-variant-numeric: tabular-nums</code>，
+      这样不同位数的百分比也能按位对齐比较。
+    </p>
+  </section>
+
+  <section id="plan" aria-labelledby="plan-title">
+    <h2 id="plan-title">学习计划</h2>
+
+    <p>第一期的主线是「能上线」。顺序不能随意调换，因为每一步都依赖前一步：</p>
+
+    <ol>
+      <li>
+        <strong>HTML</strong>
+        —— 先能正确地表达内容。这一步做不扎实，后面所有布局和无障碍工作都要返工。
+      </li>
+      <li>
+        <strong>CSS</strong>
+        —— 再能控制呈现。重点是盒模型、层叠与继承、Flexbox 与 Grid。
+      </li>
+      <li>
+        <strong>JavaScript</strong>
+        —— 使用已有的 <a href="https://javascript.info/">javascript.info</a> 资源，不重造教程。
+      </li>
+      <li>
+        <strong>TypeScript</strong>
+        —— 为后续的 Vue 与 Node.js 打底，重点是类型推导与泛型。
+      </li>
+      <li>
+        <strong>Vue 3 + Vite</strong>
+        —— 前端主线框架，用组合式 API 与 <code>&lt;script setup&gt;</code>。
+      </li>
+      <li>
+        <strong>Node.js + Fastify</strong>
+        —— 后端主线，重点是请求生命周期与插件机制。
+      </li>
+      <li>
+        <strong>SQL + PostgreSQL</strong>
+        —— 数据库主线，先手写 SQL 再用 Prisma 做 ORM。
+      </li>
+      <li>
+        <strong>Git</strong>
+        —— 贯穿全程，不是单独的一步。
+      </li>
+      <li>
+        <strong>Linux 基础</strong>
+        —— 服务器操作的最小集。
+      </li>
+      <li>
+        <strong>Docker + Nginx</strong>
+        —— 把成品部署到自己的服务器上。
+      </li>
+    </ol>
+  </section>
+
+  <section id="notes" aria-labelledby="notes-title">
+    <h2 id="notes-title">学习笔记</h2>
+
+    <p>只记录那些「查了资料才搞明白、且以后还会再遇到」的问题。</p>
+
+    <article aria-labelledby="note-1">
+      <header>
+        <h3 id="note-1">为什么 <code>&lt;p&gt;</code> 里不能放 <code>&lt;div&gt;</code></h3>
+        <p class="meta"><time datetime="2026-10-16">2026 年 10 月 16 日</time></p>
+      </header>
+      <p>
+        因为解析器在 <code>&lt;p&gt;</code> 内部遇到块级元素的开始标签时，
+        会先自动闭合当前的 <code>&lt;p&gt;</code>。这不是浏览器 bug，
+        而是规范里写明的容错行为。实际生成的 DOM 是
+        <code>&lt;p&gt;&lt;/p&gt;&lt;div&gt;…&lt;/div&gt;</code>，
+        中间那个空的 <code>&lt;p&gt;</code> 会带来意想不到的外边距。
+      </p>
+    </article>
+
+    <article aria-labelledby="note-2">
+      <header>
+        <h3 id="note-2"><code>&lt;section&gt;</code> 不加 <code>aria-labelledby</code> 等于白写</h3>
+        <p class="meta"><time datetime="2026-10-16">2026 年 10 月 16 日</time></p>
+      </header>
+      <p>
+        按 HTML-AAM 的映射表，<code>&lt;section&gt;</code> 只有在拥有可访问名称时
+        才映射为 <code>region</code> 角色，否则映射为 <code>generic</code>——
+        和 <code>&lt;div&gt;</code> 在无障碍树上没有区别。
+        而子元素里有个 <code>&lt;h2&gt;</code> 并<strong>不会</strong>自动给父元素名称，
+        必须显式用 <code>aria-labelledby</code> 指过去。
+      </p>
+    </article>
+
+    <article aria-labelledby="note-3">
+      <header>
+        <h3 id="note-3">相对 URL 会丢掉最后一段路径</h3>
+        <p class="meta"><time datetime="2026-10-16">2026 年 10 月 16 日</time></p>
+      </header>
+      <p>
+        当前地址是 <code>/docs/html/links.html</code> 时，
+        <code>href="../css/"</code> 解析为 <code>/docs/css/</code>；
+        但当前地址是 <code>/docs/html</code>（没有结尾斜杠）时，
+        同样的 <code>href</code> 解析为 <code>/css/</code>——
+        因为 <code>html</code> 被当作文件名丢掉了。
+        这就是「本地双击打开正常，部署后 404」的常见原因。
+      </p>
+    </article>
+  </section>
+
+  <section id="faq" aria-labelledby="faq-title">
+    <h2 id="faq-title">常见问题</h2>
+
+    <dl>
+      <dt>为什么不直接学框架？</dt>
+      <dd>
+        框架解决的是「组织大量交互逻辑」的问题。在只有一个静态页面时，
+        框架带来的复杂度远大于收益，而且它掩盖了 HTML 与 CSS 的真实行为。
+      </dd>
+
+      <dt>进度数据存在哪里？</dt>
+      <dd>
+        哪都没存。这个参考实现只有 <code>index.html</code> 与 <code>style.css</code> 两个文件，
+        表里的数字是直接写进 <code>&lt;td&gt;</code> 的文本，页面没有任何脚本、
+        没有 <code>localStorage</code>，也没有后端。
+      </dd>
+
+      <dt>这个页面能直接部署吗？</dt>
+      <dd>
+        可以。它是两个文件（<code>index.html</code> 与 <code>style.css</code>），
+        放到任何能提供静态文件的地方都能访问，
+        包括 <abbr title="Virtual Private Server">VPS</abbr> 上的 Nginx、
+        局域网里的一台机顶盒，或者直接双击用浏览器打开。
+      </dd>
+    </dl>
+  </section>
+
+  <aside aria-labelledby="resources-title">
+    <h2 id="resources-title">相关资源</h2>
+    <ul>
+      <li><a href="https://html.spec.whatwg.org/multipage/">HTML Standard（WHATWG）</a></li>
+      <li><a href="https://developer.mozilla.org/zh-CN/docs/Web/HTML">MDN HTML 文档（中文）</a></li>
+      <li><a href="https://validator.w3.org/nu/">W3C Markup Validation Service</a></li>
+      <li><a href="https://www.w3.org/TR/WCAG22/">WCAG 2.2</a></li>
+    </ul>
+  </aside>
+
+</main>
+
+<footer class="site-footer">
+  <p>
+    这是一份纯静态的个人学习档案，没有服务器、没有数据库、没有账号系统。
+    所有内容都由我自己维护，发现写错的地方就直接改文件。
+  </p>
+  <p><small>HTML 领域阶段项目参考实现 · 最后更新于 <time datetime="2026-10-16">2026 年 10 月</time></small></p>
+</footer>
+
+</body>
+</html>

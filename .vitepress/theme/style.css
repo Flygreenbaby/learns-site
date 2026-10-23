@@ -1,0 +1,130 @@
+/**
+ * 全站阅读体验的基础样式覆盖。
+ * 原则：只提升长文阅读的可读性与代码可辨识度，不做装饰性动画。
+ */
+
+/**
+ * 正文区略微加宽：技术长文 + 代码块在默认宽度下换行过多。
+ *
+ * 2026-10-16 实测审计（详见 CSS 第 2 章「本站源码的真实审计」一节）：
+ * - 这条规则的 specificity 是 (0,3,0)，主题对应的是 `.content[data-v-*]` 的 (0,2,0)，
+ *   本来就赢；实测在浏览器里撤掉 !important 优先级，computed max-width 仍是 992px（62rem）。
+ *   保留 !important 的原因：主题的 `.VPDoc:not(.has-sidebar) .content[data-v-*]` 是 (0,4,0)，
+ *   在没有侧边栏的文档页上会压过本条。
+ * - 但它并不决定正文宽度：有大纲侧栏时真正生效的是主题的
+ *   `.VPDoc.has-aside .content-container[data-v-*] { max-width: 688px }`（(0,4,0)）。
+ *   实测注入 `.VPDoc .container .content .content-container { max-width: 62rem }`（同为 (0,4,0)，
+ *   本站样式表在后）可以把 computed 从 688px 抬到 992px；注入 `.VPDoc .content-container`（(0,3,0)）无效。
+ *   本改动**没有应用**：当前环境无法把浏览器窗口调到宽视口，正文行宽属于阅读体验参数，
+ *   不做没有目视验收的布局改动。将来若要加宽，用上面那条 (0,4,0) 选择器，不要加 !important。
+ */
+:root {
+  --vp-doc-max-width: 62rem;
+}
+
+.VPDoc .container .content {
+  max-width: var(--vp-doc-max-width) !important;
+}
+
+@media (min-width: 1440px) {
+  :root {
+    --vp-doc-max-width: 66rem;
+  }
+}
+
+/* 代码块：等宽字体栈补充中文字体回退，避免中文注释渲染错位 */
+:root {
+  --vp-font-family-mono:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono',
+    'Microsoft YaHei Mono', 'PingFang SC', monospace;
+}
+
+.vp-doc div[class*='language-'] {
+  border-radius: 8px;
+}
+
+/* 代码块字号略调大，长行更易读 */
+.vp-doc div[class*='language-'] pre {
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+
+/* 行内代码：加浅底色，在中文正文中更容易被眼睛定位 */
+.vp-doc :not(pre) > code:not([class*='language-']) {
+  padding: 2px 5px;
+  border-radius: 4px;
+  background-color: var(--vp-c-default-soft);
+  color: var(--vp-c-text-1);
+  font-size: 0.875em;
+}
+
+/* 表格：技术领域对照表较多，需要清晰的斑马纹与横向滚动 */
+.vp-doc table {
+  display: table;
+  width: 100%;
+  font-size: 14px;
+}
+
+.vp-doc tr:nth-child(2n) {
+  background-color: var(--vp-c-bg-soft);
+}
+
+.vp-doc th {
+  font-weight: 600;
+  color: var(--vp-c-text-1);
+}
+
+/* 标题层级视觉差：h2 分隔线保留，h3/h4 靠字重与颜色区分 */
+.vp-doc h3 {
+  margin-top: 2rem;
+}
+
+.vp-doc h4 {
+  margin-top: 1.5rem;
+  color: var(--vp-c-text-2);
+  font-size: 15px;
+}
+
+/* 有序/无序列表在中文长句中需要更明显的行距 */
+.vp-doc li {
+  margin: 6px 0;
+  line-height: 1.85;
+}
+
+.vp-doc p {
+  line-height: 1.9;
+}
+
+/* 原生 <details>（作为 Exercise 组件的降级写法）统一样式 */
+.vp-doc details {
+  margin: 16px 0;
+  padding: 10px 14px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 6px;
+  background-color: var(--vp-c-bg-soft);
+}
+
+.vp-doc details summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--vp-c-brand-1);
+}
+
+/* 侧边栏分组标题更醒目，便于在长目录中定位 */
+.VPSidebarItem.level-0 .item .text {
+  font-weight: 600;
+}
+
+/* 移动端：正文左右留白收紧，代码块保持可横向滚动 */
+@media (max-width: 768px) {
+  .vp-doc div[class*='language-'] pre {
+    font-size: 13px;
+  }
+
+  .VPDoc .container .content {
+    /* 主题的 `.content[data-v-*] { padding: 0 32px 128px }` 是 (0,2,0) 且在
+       @media (min-width: 960px) 内，与本条 (0,3,0) 的 ≤768px 规则互斥，理论上不需要
+       !important。但当前环境无法把视口调到 ≥960px 做实测验证，因此保守保留这一档。 */
+    padding: 0 20px !important;
+  }
+}

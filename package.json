@@ -1,0 +1,18 @@
+{
+  "name": "learns",
+  "version": "1.0.0",
+  "private": true,
+  "description": "中文全栈开发知识学习平台（VitePress 静态站点）",
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview",
+    "type-check": "vue-tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitepress": "1.6.4",
+    "vue-tsc": "^3.3.13"
+  }
+}

@@ -1,0 +1,392 @@
+/* ============================================================
+   语义化个人学习档案页 · 参考实现样式表
+   HTML 领域阶段项目配套文件
+
+   配色对比度已按 WCAG 2.2 相对亮度公式逐对计算核实（2026-10）：
+     文本对比度（SC 1.4.3 AA，需 ≥4.5:1）  全部 ≥6.70:1
+     非文本对比度（SC 1.4.11 AA，需 ≥3:1） 全部 ≥4.83:1
+   具体数值见 html/project 章节的说明。
+
+   尺寸单位一律使用 rem / %，以满足 SC 1.4.4（文本可放大到 200%）。
+   ============================================================ */
+
+/* ---------- 设计令牌 ---------- */
+:root {
+  /* 亮色模式（默认） */
+  --c-bg:          #ffffff;
+  --c-surface:     #f6f7f9;
+  --c-th-bg:       #f1f3f7;
+  --c-text:        #1f2430;   /* 15.52:1 on --c-bg */
+  --c-text-2:      #4b5563;   /*  7.56:1 on --c-bg */
+  --c-link:        #1d4ed8;   /*  6.70:1 on --c-bg */
+  --c-link-hover:  #1e40af;   /*  8.72:1 on --c-bg */
+  --c-code:        #9a3412;   /*  6.82:1 on --c-surface */
+  --c-border:      #6b7280;   /*  4.83:1 on --c-bg（非文本，需 ≥3:1） */
+  --c-border-soft: #d1d5db;   /* 仅用于装饰性分隔线，不承载信息 */
+  --c-focus:       #1d4ed8;   /*  6.70:1 on --c-bg */
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2.5rem;
+
+  --measure: 68ch;           /* 正文行宽上限，约 68 个字符 */
+}
+
+/* 暗色模式：跟随系统。整套变量替换，因此对比度需单独核实（见下方注释） */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --c-bg:          #14171c;
+    --c-surface:     #1b1f26;
+    --c-th-bg:       #1b1f26;
+    --c-text:        #e8eaed;  /* 14.90:1 on --c-bg */
+    --c-text-2:      #b6bcc6;  /*  9.41:1 on --c-bg */
+    --c-link:        #8ab4f8;  /*  8.52:1 on --c-bg */
+    --c-link-hover:  #aecbfa;
+    --c-code:        #f0a58a;  /*  8.23:1 on --c-surface */
+    --c-border:      #8b93a1;  /*  5.80:1 on --c-bg（非文本） */
+    --c-border-soft: #2c3138;
+    --c-focus:       #8ab4f8;  /*  8.52:1 on --c-bg */
+  }
+}
+
+/* ---------- 基础 ---------- */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html {
+  /* 不写死 px，尊重用户在浏览器里设置的默认字号（SC 1.4.4） */
+  font-size: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC",
+               "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--c-text);
+  background: var(--c-bg);
+  /* 单列布局：DOM 顺序 = 视觉顺序，Tab 顺序天然正确（SC 2.4.3 / 1.3.2） */
+}
+
+h1, h2, h3 {
+  line-height: 1.3;
+  margin-block: var(--space-4) var(--space-2);
+  /* 长标题在窄屏下允许断词，避免撑破 320px 布局（SC 1.4.10） */
+  overflow-wrap: break-word;
+}
+
+h1 { font-size: 1.75rem; }
+h2 { font-size: 1.375rem; }
+h3 { font-size: 1.125rem; }
+
+p, ul, ol, dl { margin-block: 0 var(--space-3); }
+
+main p,
+main li,
+main dd { max-width: var(--measure); }
+
+/* ---------- 跳转链接（SC 2.4.1） ---------- */
+/* 关键：用「移出视口」隐藏，不能用 display:none / visibility:hidden，
+   否则元素不可聚焦，跳转链接就失效了。 */
+.skip-link {
+  position: absolute;
+  top: 0;
+  left: var(--space-3);
+  transform: translateY(-120%);
+  z-index: 10;
+  padding: var(--space-2) var(--space-3);
+  background: var(--c-link);
+  color: #ffffff;             /* 6.70:1 on --c-link */
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 0 0 0.375rem 0.375rem;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* ---------- 焦点样式（SC 2.4.7） ---------- */
+/* 只增强、不移除。不使用 :focus { outline: none }。 */
+a:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--c-focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* 可横向滚动的表格容器获得焦点时，给出明显的视觉提示 */
+.table-wrap:focus-visible {
+  outline: 3px solid var(--c-focus);
+  outline-offset: 2px;
+}
+
+/* ---------- 链接 ---------- */
+a { color: var(--c-link); }
+
+a:hover {
+  color: var(--c-link-hover);
+  text-decoration-thickness: 2px;
+}
+
+/* 当前页链接：颜色之外还有下划线加粗 + aria-current（SC 1.4.1 不能只靠颜色） */
+a[aria-current="page"] {
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 4px;
+}
+
+/* ---------- 触摸目标尺寸（SC 2.5.8，需 ≥24×24 CSS px） ---------- */
+.site-header a,
+.site-footer a,
+aside a,
+nav a {
+  display: inline-block;
+  min-height: 1.5rem;          /* 24px @ 16px 根字号 */
+  padding-block: var(--space-1);
+}
+
+/* ---------- 页头 ---------- */
+.site-header {
+  border-block-end: 1px solid var(--c-border);
+  padding-block: var(--space-3);
+  margin-block-end: var(--space-4);
+}
+
+.site-title {
+  margin: 0 0 var(--space-2);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.site-title a { text-decoration: none; }
+
+/* 主导航：flex 换行，窄屏自动折成多行而不是溢出（SC 1.4.10） */
+.site-header nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;   /* 移除了列表标记 → Safari/VoiceOver 会丢失列表语义，
+                         因此 HTML 里这个 ul 必须保留 role="list" */
+}
+
+/* ---------- 主体 ---------- */
+main {
+  padding-inline: var(--space-3);
+  max-width: 76rem;
+  margin-inline: auto;
+}
+
+article > header { margin-block-end: var(--space-3); }
+
+article > footer,
+article > header {
+  border-block-start: none;
+}
+
+.meta {
+  color: var(--c-text-2);
+  font-size: 0.9375rem;
+  margin: 0;
+}
+
+/* 文章内部的 header / footer 用左侧竖线区分，不额外增加层级噪音 */
+article > header {
+  padding-block-end: var(--space-2);
+  border-block-end: 1px solid var(--c-border-soft);
+}
+
+article > footer {
+  padding-block-start: var(--space-2);
+  border-block-start: 1px solid var(--c-border-soft);
+  margin-block-start: var(--space-3);
+}
+
+/* 嵌套的笔记条目：左侧留白 + 竖线，视觉上表示「从属于上一级」 */
+#notes article {
+  border-inline-start: 3px solid var(--c-border-soft);
+  padding-inline-start: var(--space-3);
+  margin-block-end: var(--space-4);
+}
+
+#notes article > header { border: none; padding: 0; }
+
+/* 标签列表：胶囊样式，移除了列表标记 → 保留 role="list" */
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+}
+
+.tag-list li {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  font-size: 0.875rem;
+  color: var(--c-text-2);
+}
+
+/* ---------- 分区 ---------- */
+main > section,
+main > aside {
+  margin-block-start: var(--space-5);
+  padding-block-start: var(--space-3);
+  border-block-start: 2px solid var(--c-border-soft);
+}
+
+/* aside 在窄屏与宽屏都保持单列，避免与 main 争抢宽度 */
+aside ul { padding-inline-start: var(--space-4); }
+
+.note {
+  color: var(--c-text-2);
+  font-size: 0.9375rem;
+  border-inline-start: 3px solid var(--c-border);
+  padding-inline-start: var(--space-3);
+}
+
+/* ---------- 定义列表 ---------- */
+dl { margin-block-start: var(--space-3); }
+
+dt {
+  font-weight: 600;
+  margin-block-start: var(--space-3);
+}
+
+dd {
+  margin-inline-start: var(--space-4);
+  color: var(--c-text-2);
+}
+
+/* ---------- 代码 ---------- */
+code {
+  font-family: ui-monospace, SFMono-Regular, "Cascadia Mono", Consolas,
+               "Microsoft YaHei Mono", monospace;
+  font-size: 0.875em;
+  background: var(--c-surface);
+  color: var(--c-code);
+  padding: 0.125em 0.375em;
+  border-radius: 0.25rem;
+  /* 长标识符允许断行，避免撑破 320px 布局 */
+  overflow-wrap: break-word;
+}
+
+/* ---------- 表格 ---------- */
+/* 响应式方案 A：横向滚动容器 + tabindex="0"（键盘用户才能滚动） */
+.table-wrap {
+  overflow-x: auto;
+  margin-block: var(--space-3);
+  border: 1px solid var(--c-border);
+  border-radius: 0.375rem;
+}
+
+table {
+  border-collapse: collapse;   /* 去掉默认的 2px border-spacing */
+  width: 100%;
+  min-width: 34rem;            /* 小于此宽度会触发容器横向滚动，而不是挤压内容 */
+}
+
+caption {
+  caption-side: top;
+  text-align: left;            /* 覆盖 UA 默认的居中 */
+  font-weight: 600;
+  padding: var(--space-2) var(--space-3);
+  color: var(--c-text-2);
+}
+
+th, td {
+  padding: var(--space-2) var(--space-3);
+  border-block-end: 1px solid var(--c-border-soft);
+  text-align: left;            /* 覆盖 th 的 UA 默认居中 */
+  vertical-align: top;
+}
+
+thead th {
+  background: var(--c-th-bg);
+  font-weight: 600;
+  white-space: nowrap;
+  border-block-end: 2px solid var(--c-border);
+}
+
+tfoot th,
+tfoot td {
+  font-weight: 700;
+  border-block-start: 2px solid var(--c-border);
+  background: var(--c-th-bg);
+}
+
+tbody tr:last-child th,
+tbody tr:last-child td { border-block-end: none; }
+
+/* 数字列右对齐 + 等宽数字，便于纵向比较数量级 */
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* <col> 上只有 background / border / width / visibility 四个属性生效，
+   text-align 写在 <col> 上完全无效 —— 所以数字列的右对齐是写在
+   单元格类 .num 上的，不是写在 .col-num 上。详见 html/tables 第七章。 */
+.col-domain { width: 9rem; }
+.col-num    { width: 6.5rem; }
+/* 备注列占据剩余宽度，并允许换行，避免撑宽表格 */
+.col-note   { width: 34%; }
+
+tbody th[scope="row"] { font-weight: 600; }
+
+/* ---------- 页脚 ---------- */
+.site-footer {
+  margin-block-start: var(--space-5);
+  padding: var(--space-4) var(--space-3);
+  border-block-start: 1px solid var(--c-border);
+  color: var(--c-text-2);
+  font-size: 0.9375rem;
+}
+
+.site-footer p { margin-block: 0 var(--space-2); }
+.site-footer p:last-child { margin-block-end: 0; }
+
+/* ---------- 窄屏适配 ---------- */
+/* 320px 是 WCAG SC 1.4.10 Reflow 的基准宽度。
+   这里不使用固定断点重排，因为布局本身就是单列的 ——
+   这正是「DOM 顺序 = 视觉顺序」带来的好处。 */
+@media (max-width: 40rem) {
+  :root {
+    --space-5: 2rem;
+  }
+  h1 { font-size: 1.5rem; }
+  th, td { padding: var(--space-2); }
+  .table-wrap { border-radius: 0; border-inline: none; }
+}
+
+/* ---------- 尊重用户的动效偏好 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- 打印 ---------- */
+@media print {
+  .skip-link,
+  .site-header nav { display: none; }
+  body { color: #000; background: #fff; }
+  a { color: #000; text-decoration: underline; }
+  .table-wrap { overflow: visible; border: none; }
+  table { min-width: 0; }
+}
