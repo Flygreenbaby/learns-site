@@ -154,11 +154,16 @@ export default defineConfig({
   // README.md 是仓库说明；TASK-HANDOFF.md 是交接记录；scripts/ 是本地工具——都不作为站点页面
   // docs/ 下两篇是**只给维护者看**的发布前清单与部署说明：文件保留在源码里，
   // 但不构建成公开页面（学习者需要的启动步骤已经写在 guide/how-to-use.md）。
+  // CONTRIBUTING.md / CONTENT-LICENSE.md 同理：它们是仓库协作与授权说明，
+  // 在 GitHub 仓库页面上阅读（CONTRIBUTING.md 还会被 GitHub 自动识别为贡献入口），
+  // 不需要变成站点页面；LICENSE 无 .md 后缀，本来就不参与构建。
   // 逐文件列出而不是写 'docs/**'，是为了让「新增一篇维护文档会不会被公开」这件事
   // 必须在这里显式改一行才能决定，不会因为目录约定而悄悄发布。
   srcExclude: [
     'README.md',
     'TASK-HANDOFF.md',
+    'CONTRIBUTING.md',
+    'CONTENT-LICENSE.md',
     'scripts/**',
     '**/_*.md',
     'docs/deployment.md',

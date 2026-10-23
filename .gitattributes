@@ -1,0 +1,6 @@
+# CI 工作流的 run 脚本里含 heredoc：行尾必须是 LF。
+# 如果以 CRLF 检出，终止符会变成 "EOF\r" 而匹配不上 "EOF"，
+# 结果是 Release 说明写残、构建步骤报 "here-document delimited by end-of-file"。
+# 这里显式钉死这两类文件的行尾，不受各人 core.autocrlf 设置影响。
+.github/workflows/*.yml text eol=lf
+*.sh text eol=lf

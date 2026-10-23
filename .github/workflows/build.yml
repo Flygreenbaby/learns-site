@@ -1,9 +1,9 @@
-
 name: Build learning site
 
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -38,3 +38,103 @@ jobs:
           path: .vitepress/dist/
           if-no-files-found: error
           retention-days: 30
+
+      # dist.zip 与 .vitepress/dist/ 内容一致，只是多了一个顶层 dist/ 目录：
+      # 解压后得到 dist/，把该目录整体当作站点根目录托管即可（不需要 Node）。
+      # Actions 的默认 shell 是 bash -eo pipefail，所以 zip 缺失或断言不成立都会让本步骤失败。
+      # 断言不用 `unzip -l | grep -q`：grep -q 命中即退出会让 unzip 收到 SIGPIPE，
+      # 在 pipefail 下把整个步骤判成失败。先把清单落盘再 grep，避开这个竞态。
+      - name: Package dist.zip
+        run: |
+          cd .vitepress
+          rm -f dist.zip
+          zip -r -q dist.zip dist
+          ls -l dist.zip
+          unzip -l dist.zip > /tmp/dist-zip-listing.txt
+          # 断言产物可用：非空，且清单里能找到站点入口
+          test -s dist.zip
+          grep -q 'dist/index\.html$' /tmp/dist-zip-listing.txt
+          echo "--- zip summary ---"
+          tail -n 3 /tmp/dist-zip-listing.txt
+
+      - name: Upload dist.zip artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: learns-site-dist-zip
+          path: .vitepress/dist.zip
+          if-no-files-found: error
+          retention-days: 30
+
+  # 只在推送 v* 标签时运行：复用上面 build 的产物，不重复构建。
+  # 只有这个 job 需要写权限（上传 Release 附件），build 仍是只读。
+  release:
+    name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download dist.zip
+        uses: actions/download-artifact@v4
+        with:
+          name: learns-site-dist-zip
+          path: package
+
+      - name: Write release notes
+        run: |
+          cat > release-notes.md <<'EOF'
+          ## 构建产物
+
+          附件 `dist.zip` 是本版本 VitePress 的完整静态站点构建产物，
+          由 GitHub Actions 使用 Node.js 22 执行 `npm ci` + `npm run build` 生成。
+
+          ## 怎么用
+
+          1. 下载 `dist.zip` 并解压，得到一个 `dist/` 目录；
+          2. 把 `dist/` **整个目录**作为静态站点的根目录托管（Nginx / Caddy / 宝塔 / 任意静态服务器）；
+          3. 访问 `http://<你的地址>/`。
+
+          部署机上**不需要** Node.js、数据库、后端服务或容器编排——产物是纯静态文件。
+
+          站点配置为 `cleanUrls: false` 且未设置 `base`，产物是真实的 `*.html` 文件，
+          因此**不需要** `try_files ... /index.html` 之类的 SPA 回退规则，默认部署在站点根。
+          若要部署到子目录（如 `/learns/`），需要在 `.vitepress/config.mts` 里设置
+          `base: '/learns/'` 后重新构建。
+
+          **不要**用 `file://` 直接双击打开 `index.html`：产物里的资源是站点根绝对路径，
+          且入口是 ES module，浏览器在 `file://` 下不加载。必须经 HTTP 访问。
+
+          ## 自行构建
+
+          也可以克隆源码自行构建：
+
+          ```bash
+          npm ci
+          npm run build     # 产物在 .vitepress/dist/
+          ```
+
+          ## 许可
+
+          程序代码采用 MIT License（见仓库 `LICENSE`）；
+          原创课程内容采用 CC BY 4.0（见仓库 `CONTENT-LICENSE.md`）。
+          两份许可都不覆盖第三方依赖与不属于本项目的第三方材料，后者保留原有授权条件。
+          EOF
+          echo "--- release-notes.md ---"
+          cat release-notes.md
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; replacing dist.zip asset."
+            gh release upload "$TAG" package/dist.zip --clobber
+          else
+            gh release create "$TAG" package/dist.zip \
+              --title "$TAG" \
+              --notes-file release-notes.md
+          fi

@@ -119,7 +119,7 @@
 | `package.json`（446 B） | 声明 4 条脚本与 3 个 devDependencies；**无 `dependencies`、无 `engines`** | 是 | 是 | 是 | 否 | 是 | 否 |
 | `package-lock.json`（92,654 B） | `lockfileVersion` 3，185 个 `packages` 条目，逐条带 `integrity`——收件人 `npm ci` 复现同一套版本的唯一依据 | 否 | 否 | **是（必须）** | 否 | 是 | 否 |
 | `tsconfig.json`（706 B） | 只把 `config.mts`、`domains.ts`、`theme/**` 与 `*/_sidebar.ts` 纳入类型检查；课程 Markdown 不在范围内 | 否 | 否 | 是 | 否 | 是 | **否**——`npm run type-check` 的命令串显式写了 `-p tsconfig.json`，删掉它这条脚本直接失败 |
-| `.gitignore`（720 B） | 版本控制忽略规则；**本仓库当前仍不是 Git 仓库（无 `.git/`），该文件此刻不产生任何作用**，但它已经按第 9 节补了 3 条发布边界规则 | 否 | 否 | 是 | 否 | 是 | **否**——删了不影响开发与构建，但一旦将来 `git init`，`node_modules/`（122 MB）与 `dist/`（66 MB）就会进入提交范围 |
+| `.gitignore`（767 B） | 版本控制忽略规则；**本仓库已是 Git 仓库（2026-10-23 更正，见第 9 节），该文件已生效**，按第 9 节补的 3 条发布边界规则正在起作用 | 否 | 否 | 是 | 否 | 是 | **否**——删了不影响开发与构建，但 `node_modules/`（122 MB）与 `dist/`（66 MB）立刻会进入提交范围 |
 
 `npm ci` 与 `npm install` 的区别只在交付语境里成立：有锁文件时 `npm ci` 严格按锁安装，
 `npm install` 可能把范围依赖（`typescript`、`vue-tsc` 都带 `^`）升到新版本。
@@ -310,8 +310,15 @@
 ## 9. `.gitignore` 审查与本轮新增的三条规则
 
 **原有 7 行一条未动**：`node_modules/`、`.vitepress/dist/`、`.vitepress/cache/`、`*.log`、
-`.DS_Store`、`.idea/`、`.vscode/`。本仓库当前**仍不是 Git 仓库**（实测无 `.git/`），
-所以这个文件此刻完全不产生作用；它的意义是「将来 `git init` 之后什么会被提交」。
+`.DS_Store`、`.idea/`、`.vscode/`。
+
+> **2026-10-23 更正**：本仓库**已经是 Git 仓库**（远端
+> `https://github.com/Flygreenbaby/learns-site`，默认分支 `main`），
+> 所以 `.gitignore` **已经生效**，下表这 3 条规则正在真实地挡住提交。
+> 本节以下文字写于仓库化之前，当时「实测无 `.git/`，这个文件此刻完全不产生作用」成立，
+> 现已不成立。另：此后又追加了第 4 条 `.vitepress/dist.zip`（构建产物压缩包，见第 7 节
+> 与 `docs/deployment.md` 第 7.3 节），本节标题里的「三条」指的是 2026-10-22 那一轮。
+
 （先前版本把这段写成「6 行」，实际逐行数过是 7 条，本轮顺手改正。）
 
 本轮按上面这个前提**只追加了 3 条**，每条带注释说明理由，文件从 81 B 变成 720 B：
@@ -404,14 +411,15 @@ Git 安装目录 → `C:/Program Files/Git`，Node → `C:\Program Files\nodejs\
 
 ## 11. 怎么判断 `dist/` 是不是新的（防止发过期包）
 
-`learns-site.zip`（2,420,059 B，mtime 2026-10-16）和早先的 `dist/` 都**早于**后来写完的章节，
-不能当交付物。判断方法四条，本轮四条全部实际用过：
+`learns-site.zip`（2,420,059 B，mtime 2026-10-16，**已于 2026-10-23 从磁盘移除**）和早先的 `dist/`
+都**早于**后来写完的章节，不能当交付物。判断方法四条，本轮四条全部实际用过：
 
 1. **比时间**：`dist/index.html` 的 mtime 必须**不早于**任何一章 `.md` 的 mtime。
    本轮实测 `dist/index.html` 为 2026-10-22 23:43:47（清理后重建），`find` 出比它新的 `.md` 只有
    `README.md` 与 `docs/deployment.md` 两份**不参与构建**的文件——所以这条判据现在必须加个例外：
-   **被 `srcExclude` 排除的文件更新，不构成产物过期**。本仓库不是 Git 仓库，mtime 是唯一可用的
-   「谁被改过」依据。
+   **被 `srcExclude` 排除的文件更新，不构成产物过期**。
+   （**2026-10-23 更正**：本仓库已是 Git 仓库，「谁被改过」优先用 `git status` / `git diff` 判断，
+   mtime 只作辅助；下面这句「mtime 是唯一可用依据」是仓库化之前的旧结论。）
 2. **比数量**：`find dist -name '*.html' | wc -l` 应等于页面数 + 2（`404.html` 与 `public` 下的示例）。
    本轮 223 = **221** + 2，成立；上一版本记录的 224 = 222 + 2 也是当时真实状态。
    两处记录的差是 **1 页**，且 `.js` 数从 449 变 447（−2）——**这个 −1 / −2 组合是自洽的**：

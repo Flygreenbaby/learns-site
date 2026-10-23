@@ -247,7 +247,10 @@ npm run preview    ->  http://localhost:4173/
 **怎么确认产物不是过期的**（这一步比打包本身重要）：
 
 1. 比时间：`dist/index.html` 的 mtime 必须**不早于**任何一章 `.md` 的 mtime。
-   本仓库**不是 Git 仓库**，mtime 是唯一可用依据。
+   > **2026-10-23 更正**：本仓库**已经是 Git 仓库**（远端
+   > `https://github.com/Flygreenbaby/learns-site`，默认分支 `main`）。
+   > 判断「谁被改过」应优先用 `git status` / `git diff`，mtime 只作辅助核对。
+   > 下面这段实测记录写于仓库化之前，当时「mtime 是唯一可用依据」成立，现已不成立。
    本轮实测：`dist/index.html` 为 23:43:47，最新的章文件是 `linux/users-and-permissions.md`
    （23:34:05）与 `guide/how-to-use.md`（23:34:48），都早于构建 ✓。
    两条**只在不发布范围里**的文件（`docs/` 两篇、`README.md`）写在构建之后，
@@ -264,8 +267,47 @@ npm run preview    ->  http://localhost:4173/
    本轮实测只有 `examples/html-archive/index.html` 与 `style.css` 两个，且与 `public/` 源文件
    `cmp` 逐字节相同——是拷贝时间戳，不是过期内容。
 
-仓库里现存的 `learns-site.zip`（2,420,059 B，mtime 2026-10-16）与 10-16/10-17 的旧 `dist/`
-**都不含后来写完的章节**，不能作为交付物；本轮**不生成 ZIP**，也不复制/删除它们。
+早先仓库根目录里那个 `learns-site.zip`（2,420,059 B，mtime 2026-10-16）与 10-16/10-17 的旧 `dist/`
+**都不含后来写完的章节**，不能作为交付物。
+**2026-10-23 状态**：`learns-site.zip` 已从磁盘移除（`.gitignore` 里的规则保留，防止它再被误提交）；
+形态 B 现在有一个正式的压缩包形式 `dist.zip`，见下一节。
+
+### 7.3 形态 B 的现成压缩包：`dist.zip`（含 CI 产出）
+
+`dist.zip` 就是 `.vitepress/dist/` 的压缩包，**带一个顶层 `dist/` 目录**：
+解压后得到 `dist/`，把该目录整体当作站点根目录托管即可，部署机上不需要 Node。
+
+三个取得途径：
+
+1. **从 GitHub Actions 下载**（推荐给不想装 Node 的人）。打开仓库的
+   [Actions 页面](https://github.com/Flygreenbaby/learns-site/actions)，
+   进入一次成功的 `Build learning site` 运行，页面底部 Artifacts 区有两条：
+   `learns-site-dist-zip`（压缩包 `dist.zip`）与 `learns-site-dist`（未压缩的 `dist/` 目录）。
+   CI 用 Node 22 执行 `npm ci` + `npm run build`，与本机产物同源，
+   工作流里对压缩包做了「非空 + 含 `dist/index.html`」的断言。详见 `README.md` 第十六节。
+2. **从 GitHub Release 下载**。推送 `v*` 标签会触发工作流里的 `release` job，
+   它下载同一次构建的 `dist.zip` 并作为附件上传到对应的 Release。
+3. **本机自己打**。构建完成后压缩 `.vitepress/dist/`。注意 Windows 的 Git Bash
+   通常只有 `unzip` 而**没有 `zip`**，本机可用 Python：
+
+   ```powershell
+   npm run build
+   python -c "import zipfile,pathlib; d=pathlib.Path('.vitepress/dist'); z=zipfile.ZipFile('.vitepress/dist.zip','w',zipfile.ZIP_DEFLATED); [z.write(p,'dist/'+p.relative_to(d).as_posix()) for p in sorted(x for x in d.rglob('*') if x.is_file())]; z.close()"
+   ```
+
+   [已实测] 2026-10-23 17:50 用上面这条命令生成：**688 个文件条目、223 个 `.html`、
+   17,285,593 B**；解压到干净目录后与 `.vitepress/dist/` **逐字节相同**（`diff -rq` 无差异），
+   `dist/index.html` 存在。压缩包字节数会随构建小幅浮动（同日两次分别是 17,286,567 B 与
+   17,285,593 B），**稳定判据是条目数 688 与 `.html` 数 223**。
+   CI 上用的是 `zip -r dist.zip dist`，产物同为标准 ZIP，
+   差别仅在于 `zip -r` 会额外写入目录条目（本机 688 个条目，CI 711 个）。
+
+`.vitepress/dist.zip` 已在 `.gitignore` 里，**不进仓库**——它是构建产物，不是源码。
+判断它是不是新的，用上面第 7.2 节那四条判据（对 `dist/` 判断即可，压缩包只是它的封装）。
+
+**[未实测]** CI 的打包步骤与 `release` job 尚未在任何环境运行过（本地无法执行
+GitHub Actions），其中 heredoc 已在本地用 `bash` 单独执行验证通过。
+验证状态明细见 `README.md` 第十六节。
 
 ## 8. Windows 本机验证与局域网阅读
 

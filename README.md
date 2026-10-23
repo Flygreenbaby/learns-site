@@ -1,37 +1,42 @@
 # 全栈学习手册（learns）
 
-面向**个人本地自学**的中文编程学习网站。VitePress 静态站点：无后端、无数据库、无用户系统、
+面向**个人自学**的中文编程学习网站。VitePress 静态站点：无后端、无数据库、无用户系统、
 无登录、不埋点、不记录学习进度。全部内容是仓库里的 Markdown 文件，构建后是一堆静态 HTML。
+
+- 仓库：<https://github.com/Flygreenbaby/learns-site>（公开，默认分支 `main`）
+- 许可：代码 MIT（[LICENSE](LICENSE)）+ 原创课程内容 CC BY 4.0（[CONTENT-LICENSE.md](CONTENT-LICENSE.md)），
+  允许转载、修改、二次发布与商业使用，条件是署名、给出许可链接、说明修改情况（见第十四节）。
+- 参与：报问题走 [Issues](https://github.com/Flygreenbaby/learns-site/issues)，
+  改内容走 Fork + Pull Request，见 [CONTRIBUTING.md](CONTRIBUTING.md)（见第十五节）。
 
 本文件说明「这个项目是什么、怎么在本地跑起来、怎么部署、边界在哪里」。
 服务器部署（环境、构建、本机验证、局域网、Nginx、静态托管平台、更新与回滚）的完整步骤在
 [`docs/deployment.md`](docs/deployment.md)；每一类文件的作用与命运（保留什么、不发布什么、
 能不能删、打包时怎么取舍）在 [`docs/project-file-inventory.md`](docs/project-file-inventory.md)。
 
-> **本文件的命令状态标注规则（2026-10-22 更新）**：本项目有三类结论，务必分开读——
+## 导读：我想做什么，该看哪一节
+
+| 我想… | 看这里 |
+| --- | --- |
+| 了解这是什么、覆盖哪些领域 | 本文第一、二节 |
+| 在本地跑起来（安装 / dev / build / preview） | 本文第五、六节 |
+| **不想装 Node**，直接拿构建产物部署 | 本文第七节「取得构建产物」+ 第十六节 |
+| 部署到 Linux VPS / Nginx / 免费静态托管平台 | [`docs/deployment.md`](docs/deployment.md) |
+| 判断某个文件能不能删、两种交付包各装什么 | [`docs/project-file-inventory.md`](docs/project-file-inventory.md) |
+| 报错、改内容、提 Issue / PR | [CONTRIBUTING.md](CONTRIBUTING.md) |
+| 能不能转载、能不能商用 | 本文第十四节 + [CONTENT-LICENSE.md](CONTENT-LICENSE.md) |
+| 看 CI 怎么构建、怎么出版本 | 本文第十六节 |
+
+> **命令状态标注口径**：本项目对「已验证」与「未验证」区分得很严，读命令时请注意三类标注——
 >
-> - **本次已实测**：2026-10-22 在**当前文件状态**上真跑过并写明结果。最后一次跑是在
->   **公开发布前清理之后**（正文隐私替换 + 两篇维护文档移出构建），结果：
->   `npm run build`（退出码 0，120.60 s，产出 221 页 / 223 个 `.html`）、
->   `npm run type-check`（退出码 0，无诊断输出＝零类型错误）、
->   `node scripts/check-links.cjs`（`OK: no dead internal links. 241 page targets.`
->   ——这个 241 是脚本自己的页面候选集，**不等于公开页面数**：它硬编码的排除表里没有
->   `docs/` 两篇，所以仍把它们当页面；构建侧的真判据是 `npm run build` 退出码 0 且产物 223 个 `.html`）、
->   `node scripts/scan-braces.cjs`（3 处命中全在被排除的 `_*` 治理文件里）、
->   `node .scratch/mdcheck.mjs`（逐页编译复刻，223 页 0 失败）、
->   `npm run preview`（4178，抽 12 条 URL 断言：5 个被改过的章页 + `guide/how-to-use`
->   + 首页两种写法 + `404.html` 共 9 条 200，
->   `docs/` 两篇的 `.html` 与无扩展名形式共 3 条为 404，服务已停、端口已释放）。
->   上一轮（同日 22:19–22:26）还做过 dev 5173 与 preview 4173 的**逐路由全量 200 扫描**（222 条），
->   本轮没有重做全量，只做了上面的抽样断言。
->   本轮同时修复了两类会让构建中止的缺陷（组件插槽位置、指向 `.scratch` 的死链）。
-> - **历史实测**：更早会话（2026-10-16）在同一台机器上做过的实验，当时产物**不含**后来写完的
->   章节，本次未重做。包括 `file://` 打开的对照表、站内搜索的离线索引位置、搜索分词容错行为、
->   `npm audit` 的三条漏洞记录。标注它当时的产物范围。
-> - **理论步骤 / 未实测**：**任何安装动作**（`npm install` / `npm ci`，本机依赖早已存在，
->   本次没装过）、**任何远程部署**（Nginx、VPS、Docker、免费静态托管、机顶盒跨设备访问）、
->   **浏览器人工点击验收**（搜索框、暗色模式、移动端布局、首屏水合）。
->   这些一律写成「理论步骤」，不要当成已验证结果。
+> - **[已实测]**：在当前文件状态上真跑过，并写明结果（时间、退出码、产物数量）。
+> - **[CI 已验证]**：由 GitHub Actions 在干净环境（ubuntu-latest + Node 22）里跑通，
+>   证据是工作流运行记录本身，不是本机输出。
+> - **[理论步骤 / 未实测]**：没有真跑过，或只在更早的文件状态上跑过。
+>   **任何远程部署**（Nginx、VPS、Docker、静态托管平台）、**浏览器人工点击验收**、
+>   **外部链接可达性**都属于这一类，不要当成已验证结果。
+>
+> 逐条命令的完整验证台账在 [`docs/deployment.md`](docs/deployment.md) 第 0 节与第 14 节。
 
 ---
 
@@ -39,53 +44,100 @@
 
 - 解决什么问题：把「从零学到能上线、能运维、能长久维护」的路线拆成 17 个领域，
   每个领域给出学习顺序、要解决的真实问题、章节正文、练习与阶段项目。
-- 给谁用：自学者本人，主要在本地或局域网阅读；不是公开课程平台，没有账号体系。
+- 给谁用：中文自学者。主要在本地或局域网阅读，也可以自行部署成网站；
+  没有账号体系，不追踪任何学习行为。
 - 不是什么：不是文档站点的聚合器，不做转载；外部规范与官方文档以链接形式引用。
+- 同时也是一个公开仓库：欢迎通过 Issues 与 Pull Request 参与纠错和补充，
+  贡献者**不需要**本仓库的写权限（见第十五节）。
 
 ## 二、课程范围与组织方式
 
 组织单位是**领域（domain）**，一个领域一个顶层目录，URL 前缀即目录名（`/html/`、`/backend/`）。
+下表按分组列出全部 17 个领域，链接直达仓库目录（站点内的对应入口是 `/<目录名>/`）：
 
-| 项 | 实测数字（2026-10-22，逐目录清点磁盘） |
+**前端（7）**
+
+| 领域 | 简称 | 一句话定位 |
+| --- | --- | --- |
+| [JavaScript](javascript/) | JavaScript | javascript.info 主线入口 + 中文知识地图、语言层易错点、DOM 与网络、阶段项目与 TypeScript 衔接 |
+| [HTML](html/) | HTML | 文档结构、语义化标签、链接与多媒体、表单与校验、表格、文档大纲与 HTML 层面的无障碍 |
+| [CSS](css/) | CSS | 层叠与选择器、盒模型、Flexbox 与 Grid 布局、响应式设计、动效，以及布局调试方法 |
+| [TypeScript](typescript/) | TypeScript | 类型系统基础、联合与收窄、泛型、工具类型、类型推断与声明文件，以及真实项目中的取舍 |
+| [Vue 3](vue/) | Vue 3 | 响应式原理、模板与组合式 API、组件设计与通信、Vue Router、Pinia 状态管理与渲染性能 |
+| [React](react/) | React | 以「Vue → React 概念对照」的方式学习：JSX、Hooks、状态与副作用、重渲染机制、生态选型 |
+| [前端工程化](frontend-engineering/) | 前端工程化 | npm 与依赖管理、Vite 与构建、代码规范、测试体系（Vitest / Playwright）、浏览器与网络机制、性能优化 |
+
+**后端与数据（4）**
+
+| 领域 | 简称 | 一句话定位 |
+| --- | --- | --- |
+| [后端开发（Node.js + Fastify）](backend/) | 后端开发 | Node.js 运行时、HTTP 与 REST 原理、Fastify、分层架构、认证授权、安全、日志与错误处理 |
+| [数据库（SQL / PostgreSQL）](database/) | 数据库 | 关系模型、SQL 查询、数据建模、索引与执行计划、事务与隔离级别、迁移、备份恢复，PostgreSQL 主线 + MySQL 对照 |
+| [数据存储进阶](data-storage/) | 数据存储进阶 | Redis 与缓存策略、缓存一致性与三大问题、分布式锁与限流、Prisma 与 Drizzle 对照、连接池与慢查询 |
+| [消息队列与云服务](message-queue-cloud/) | 消息队列与云服务 | 异步解耦、RabbitMQ / Redis Stream / Kafka 对照、可靠投递与幂等、死信队列，以及对象存储、CDN、短信邮件与 Serverless |
+
+**系统与工程（3）**
+
+| 领域 | 简称 | 一句话定位 |
+| --- | --- | --- |
+| [Linux](linux/) | Linux | 命令行与文本处理、用户与权限、进程与 systemd、网络与防火墙、Shell 脚本、Nginx、服务器安全与故障定位 |
+| [工程工具与部署](devops/) | 工程工具与部署 | Git 与 GitHub 协作、代码规范、CI/CD 与 GitHub Actions、Docker 与 Compose、VPS + Nginx + HTTPS 部署与回滚 |
+| [计算机基础](computer-science/) | 计算机基础 | 数据结构与复杂度、常见算法思路、计算机网络（DNS / TCP / TLS / HTTP）、操作系统（进程线程 / IO 模型）、软件架构取舍 |
+
+**专题方向（3）**
+
+| 领域 | 简称 | 一句话定位 |
+| --- | --- | --- |
+| [实时通信](realtime/) | 实时通信 | WebSocket 协议与握手、SSE、心跳与断线重连、Nginx 代理配置、房间与广播、Node 侧实现对照 |
+| [AI 应用开发](ai-apps/) | AI 应用开发 | LLM API 集成、Prompt 工程、流式响应与前端渲染、上下文与 token 成本、RAG 全链路、Function Calling 与 Agent 编排 |
+| [移动端开发](mobile/) | 移动端开发 | 微信小程序（与 Vue 3 心智对照）、uni-app、跨端方案取舍、React Native 概览、移动端适配、真机调试与发布流程 |
+
+站点其他入口：[首页](index.md)、[如何使用本站学习](guide/how-to-use.md)、
+[完整学习路线](guide/roadmap.md)。
+
+规模（**[已实测]** 2026-10-23 逐目录清点磁盘）：
+
+| 项 | 数字 |
 | --- | --- |
-| 领域数 | 17（前端 7 / 后端与数据 4 / 系统与工程 3 / 专题方向 3） |
-| 章节正文文件 | 201（= `_content-plan.md` 规划的 187 章 + 规划表成立前已写完的 14 章：html 10、css 前 4） |
-| 领域首页 | 17 个 `<领域>/index.md` |
-| 站点其他页面 | 根 `index.md`、`guide/how-to-use.md`、`guide/roadmap.md`（3 个）。`docs/` 下两篇是维护者文档，2026-10-22 起已被 `srcExclude` 排除，**不再是站点页面** |
-| 会被构建的页面总数 | **221**（= 201 章正文 + 17 领域首页 + 3 个其他页面）。按 `.vitepress/config.mts` 的 `srcExclude` 排除 `README.md`、`TASK-HANDOFF.md`、`scripts/**`、`**/_*.md`、`docs/deployment.md`、`docs/project-file-inventory.md`，并以点开头的目录如 `.scratch/` 本来就不参与构建。**已实测**：2026-10-22 23:41–23:43 的 `npm run build`（退出码 0，120.60 s）产出 `dist` 内 **223 个 `.html`** = 221 页 + `404.html` + `public/examples/html-archive/index.html`；`dist/docs/` 目录不存在，`.vitepress/dist/docs/deployment.html`（上一轮构建遗留）随本次清空重建消失 |
+| 领域数 | 17（前端 7 / 后端与数据 4 / 系统与工程 3 / 专题方向 3），全部为 `ready` |
+| 章节正文文件 | 201（不含各领域 `index.md` 与 `_sidebar.ts`） |
+| 会被构建的页面总数 | **221** = 201 章正文 + 17 个领域首页 + 3 个其他页面（根 `index.md`、`guide/how-to-use.md`、`guide/roadmap.md`） |
+| 构建产物 `.html` 数 | **223** = 221 页 + `404.html` + `public/examples/html-archive/index.html` |
 
 每个领域的元数据（标题、简称、一句话定位、所属分期、所属分组、前置领域、建设状态、状态说明）
 只有一个来源：`.vitepress/domains.ts`。顶部导航、首页领域卡片、学习路线总表、侧边栏前缀
 都由它派生，所以改一处即可全站一致。
 
 分期口径（`PHASE_LABEL`）：`1` = 第一期·能上线，`2` = 第二期·能运维，`3` = 第三期·能长久，
-`0` = 已有资源入口（当前 17 个领域都已落到 1/2/3，没有 `phase: 0` 的领域）。
+`0` = 已有资源入口（当前 17 个领域都已落到 1/2/3）。
 
 一章的标准结构：正文小节 → `## 常见错误与排查` → `## 练习`（`<Exercise>` 组件，3–6 道，
 带折叠答案）→ `## 官方文档与延伸阅读` → `## 下一章`。阶段项目章命名固定为 `project.md`。
+写作规范见 [`_content-plan.md`](_content-plan.md) 第二节。
 
-内容是否"能连续学习"由 `.vitepress/domains.ts` 的 `status` 字段与每个领域首页的
-`<StatusBadge>` 表达，当前 17/17 为 `ready`，且 17 条 `statusNote` 里的章数与磁盘逐一对齐
-（本次已核对，见「十二、项目边界」）。
+哪些文件不参与构建：`.vitepress/config.mts` 的 `srcExclude` 逐个列出
+`README.md`、`TASK-HANDOFF.md`、`CONTRIBUTING.md`、`CONTENT-LICENSE.md`、`scripts/**`、
+`**/_*.md`、`docs/deployment.md`、`docs/project-file-inventory.md`；以点开头的目录
+（如 `.scratch/`）本来就不参与构建。
 
 ## 三、技术栈（以仓库真实文件为唯一依据）
 
 | 组成 | 版本 | 证据 |
 | --- | --- | --- |
-| 站点框架 | VitePress `1.6.4`（精确锁定，无 `^`） | `package.json` devDependencies；`node_modules/vitepress/package.json` 实读 `1.6.4` |
-| 构建器 | Vite `5.4.21`（VitePress 的传递依赖） | `package-lock.json` 与 `node_modules/vite/package.json` 实读 |
-| 视图层 | Vue `3.5.44`（传递依赖） | `package-lock.json` 的 `node_modules/vue` 条目 |
+| 站点框架 | VitePress `1.6.4`（精确锁定，无 `^`） | `package.json`；`node_modules/vitepress/package.json` 实读 |
+| 构建器 | Vite `5.4.21`（传递依赖） | `node_modules/vite/package.json` 实读 |
+| 视图层 | Vue `3.5.44`（传递依赖） | `node_modules/vue/package.json` 实读 |
 | 站内搜索 | MiniSearch `7.2.0`（传递依赖，索引在构建时生成） | `node_modules/minisearch/package.json` 实读 |
-| 类型检查 | TypeScript `5.9.3` + `vue-tsc ^3.3.13` | `package.json`；`node_modules/typescript/package.json` 实读 |
+| 类型检查 | TypeScript `5.9.3` + `vue-tsc 3.3.13` | `package.json`；`node_modules` 实读 |
 | 运行时依赖 | **无**（只有 `devDependencies`） | `package.json` |
 
 `package.json` 关键字段：`"name": "learns"`、`"private": true`、`"type": "module"`，
-脚本只有四条（见第六、七节）。`learns-site.zip` 不是交付流程的一部分，见第十二节。
+脚本只有四条（见第六、七节）。
 
 <details>
 <summary>为什么 TypeScript 锁在 5.x 而不是 7.x</summary>
 
-`npm install -D typescript` 会装到 7.x（原生编译器版本）。但 `vue-tsc@3.3.13` 需要
+`npm install -D typescript` 会装到 7.x。但 `vue-tsc@3.3.13` 需要
 `require.resolve('typescript/lib/tsc')`，TS 7 的包不再导出这个子路径，`npm run type-check`
 会直接崩：
 
@@ -94,366 +146,338 @@ Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: Package subpath './lib/tsc' is not define
 by "exports" in node_modules\typescript\package.json
 ```
 
-所以显式装 `typescript@5`（本次实读 `node_modules/typescript/package.json` = 5.9.3）。
-这段结论来自上一轮排障记录，本次未重跑安装验证。
+所以显式装 `typescript@5`（本机实读 `node_modules/typescript/package.json` = 5.9.3）。
+这也是 [CONTRIBUTING.md](CONTRIBUTING.md) 要求贡献者用 `npm ci` 而不是 `npm install` 的原因：
+后者会把带 `^` 的范围依赖升到不兼容版本。这段结论来自排障记录，本次未重跑安装验证。
 
 </details>
 
 ## 四、目录结构
 
 ```
-learns/
+learns-site/
+├─ .github/workflows/
+│  └─ build.yml            # CI：npm ci + npm run build，上传 dist 与 dist.zip，v* 标签时发 Release
 ├─ .vitepress/
-│  ├─ config.mts          # 站点配置：导航、侧边栏、中文搜索分词、本地化文案、srcExclude
-│  ├─ domains.ts          # 17 个领域的唯一数据源（名称/路径/分组/分期/状态）
+│  ├─ config.mts           # 站点配置：导航、侧边栏、中文搜索分词、本地化文案、srcExclude
+│  ├─ domains.ts           # 17 个领域的唯一数据源（名称/路径/分组/分期/状态）
 │  ├─ theme/
-│  │  ├─ index.ts         # 主题入口，注册全局组件
-│  │  ├─ style.css        # 全站样式覆盖
-│  │  └─ components/      # Callout / Exercise / RoadmapTable / StatusBadge / HomeDomains
-│  └─ dist/               # 构建产物目录（由 VitePress 默认规则决定，见第七节）
+│  │  ├─ index.ts          # 主题入口，注册全局组件
+│  │  ├─ style.css         # 全站样式覆盖
+│  │  └─ components/       # Callout / Exercise / RoadmapTable / StatusBadge / HomeDomains
+│  ├─ dist/                # 构建产物目录（gitignore，不进仓库）
+│  ├─ dist.zip             # 构建产物压缩包（gitignore，不进仓库）
+│  └─ cache/               # 构建缓存（gitignore，不进仓库）
 ├─ public/
 │  └─ examples/html-archive/   # HTML 阶段项目的参考实现（纯 HTML + CSS）
-├─ scripts/               # 四个只读校验脚本 + 三个生成脚本（见第十节）
-├─ guide/                 # 使用说明与学习路线
+├─ scripts/                # 四个只读校验脚本 + 三个生成脚本（见第十节）
+├─ guide/                  # 使用说明与学习路线（是站点页面）
 ├─ docs/
 │  ├─ deployment.md                # 部署与交付说明（本文件的展开版）
 │  └─ project-file-inventory.md    # 每一类文件的作用、打包取舍与可删判定
-│      # ↑ 两篇都在 srcExclude 里逐文件列出，**只作维护者文档留在源码里，不构建成公开页面**；
+│      # ↑ 两篇都在 srcExclude 里逐文件列出，只作维护者文档留在源码里，不构建成公开页面；
 │      #   学习者需要的启动步骤写在 guide/how-to-use.md。因为它们不进构建，
 │      #   相互引用一律写成相对链接（`docs/xxx.md`），不写站内绝对链接。
 ├─ html/ css/ javascript/ typescript/ vue/ react/ frontend-engineering/
 ├─ backend/ database/ data-storage/ message-queue-cloud/
 ├─ linux/ devops/ computer-science/ realtime/ ai-apps/ mobile/
-├─ <领域>/_sidebar.ts      # 每领域一个侧边栏文件，由 config.mts 按路径前缀拼装
-├─ index.md               # 首页
-├─ README.md              # 本文件（被 srcExclude 排除，不会成为站点页面）
-├─ _content-plan.md       # 章节规划与写作规范（治理文件，srcExclude 排除）
-├─ _author-brief.md       # 写作简报（同上）
-└─ TASK-HANDOFF.md        # 2026-10-17 的交接记录，内容已大量过期（srcExclude 排除）
+├─ <领域>/_sidebar.ts       # 每领域一个侧边栏文件，由 config.mts 按路径前缀拼装
+├─ index.md                # 站点首页
+├─ README.md               # 本文件（srcExclude 排除，不会成为站点页面）
+├─ CONTRIBUTING.md         # 贡献指南（srcExclude 排除；GitHub 会自动识别为仓库贡献入口）
+├─ LICENSE                 # 代码许可：MIT（无 .md 后缀，本来就不参与构建）
+├─ CONTENT-LICENSE.md      # 课程内容许可：CC BY 4.0（srcExclude 排除）
+├─ .gitattributes          # 钉住 CI 工作流与 .sh 的行尾为 LF（heredoc 需要，见第十六节）
+├─ .gitignore              # 提交范围声明，见第十节第 6 条
+├─ _content-plan.md        # 章节规划与写作规范（治理文件，srcExclude 排除）
+└─ _author-brief.md        # 写作简报（同上）
 ```
 
-各 `<领域>/.scratch/` 目录是写章时的证据脚本与其输出，**以点开头的目录不会被构建成页面**，
-所以它们在站点上不可达。2026-10-22 之前有 4 处正文用**链接**形式指向它们，其中 1 处会把整站构建
-中止掉；现已全部改成行内代码（见第十一节第 5 条）。本次逐条清点还发现另一类问题：
-**正文用行内代码点名的证据脚本，有 54 条在磁盘上并不存在**（`typescript/` 整个领域没有
-`.scratch/` 目录，`database/.scratch/` 是空的，`backend/` 缺 3 个，其余是零散单点）。
-这些不影响构建，但它们是"证据链的缺口"。逐条清单、体积构成与 `.gitignore` 审查都写在
-`docs/project-file-inventory.md`（维护者文档，已排除在公开页面之外）。
+`TASK-HANDOFF.md`（2026-10-17 的单次任务交接记录，内容已大量过期）与各 `.scratch/` 目录
+（写章时的证据脚本与其输出）都已被 `.gitignore` 排除，**不在仓库里**，只可能存在于某个人的
+本地目录。`srcExclude` 里保留 `TASK-HANDOFF.md` 这一条，是为了兼容本地存在该文件的情况。
+
+`.scratch/` 以点开头，既不会被构建成页面，也不会被提交。一个已知的内容缺口是：
+正文里用行内代码点名的证据脚本，有一部分在磁盘上并不存在。这些不影响构建，
+但它们是「证据链的缺口」。逐条清单、体积构成与 `.gitignore` 审查写在
+[`docs/project-file-inventory.md`](docs/project-file-inventory.md) 第 8.2 节与第 9 节。
+补齐它需要真重跑实验，不是改文档能解决的；本项目既不新建脚本冒充证据，也不删改正文引用。
 
 新增一个领域需要动四处：`domains.ts` 加一条、建 `<领域>/_sidebar.ts`、在 `config.mts` 里
 import 并挂进 `sidebarByDomain`、建 `<领域>/index.md`。
 
-## 五、环境要求（已核实的部分与口径冲突）
+## 五、环境要求
 
 | 判断依据 | 结论 | 证据 |
 | --- | --- | --- |
-| 本项目自身 | `package.json` **没有 `engines` 字段**，即项目不声明版本要求 | 本次实读 |
-| 锁定的 Vite 5.4.21 | `engines.node` = `^18.0.0 \|\| >=20.0.0` | 本次实读 `node_modules/vite/package.json` |
+| 本项目自身 | `package.json` **没有 `engines` 字段**，即项目不声明版本要求 | 实读 |
+| 锁定的 Vite 5.4.21 | `engines.node` = `^18.0.0 \|\| >=20.0.0` | 实读 `node_modules/vite/package.json` |
 | VitePress 官方「Getting Started」页 | 写明需要 **Node.js 22 或更高**（该页描述的是官方当前版本，非 1.6.4） | 2026-10-22 抓取 `https://vitepress.dev/guide/getting-started` |
-| 本站编写环境 | Node `v25.4.0` + npm `11.7.0` | 本次 `node -v` / `npm -v` 输出 |
+| CI 实际使用 | **Node 22**，`npm ci` + `npm run build` 成功 | **[CI 已验证]** 工作流 `Build learning site`，2026-10-23 在 `main` 上运行成功 |
+| 本机编写环境 | Node `v25.4.0` + npm `11.7.0`，四项检查全部通过 | **[已实测]** 2026-10-23，见第七节 |
 
-**采用的口径**：装 Node 22 或更高（同时满足官方建议与锁定依赖的下限）。
-但要说清验证边界：**被证明能完整跑通本项目（构建 + 类型检查 + dev + preview）的是
-本机这套 Node v25.4.0 + npm 11.7.0**，22.x 与 20.x 本次都没试过。
+**采用的口径**：装 Node 22 或更高（同时满足官方建议、锁定依赖下限与 CI 实际版本）。
+Node 22 已在干净环境（ubuntu-latest）下被 CI 真实跑通；20.x 仍未试过。
 `package-lock.json` 的 `lockfileVersion` 是 `3`，用 npm 9 及以上生成/读取最稳妥；
-本次未核实该格式与 npm 版本对应关系的官方文档，仅作提示。
-仓库里已有 `node_modules/`（含 vitepress 1.6.4），所以复制整个项目目录后可以直接进入第六节，
-但换机器时仍应重装依赖（**`npm ci` / `npm install` 本次未执行，属理论步骤**）。
+该格式与 npm 版本的对应关系未核实官方文档，仅作提示。
+
+**克隆仓库后必须先装依赖**：`node_modules/` 被 `.gitignore` 排除，**不在仓库里**。
+`git clone` 之后直接跑 `npm run dev` 会失败，请先执行第六节的 `npm ci`。
 
 ## 六、本地使用
 
 以下命令都在**项目根目录**执行（PowerShell / CMD / Git Bash 均可）。
-状态：**第 2–4 条本次已实测**（`npm run dev` / `build` / `preview`，结果见第七节与
-`docs/deployment.md` 第 0 节）；**第 1 条 `npm install` 本次未执行**（本机依赖早已存在），
-属理论步骤。
 
 ```powershell
-npm ci             # 装依赖：有 package-lock.json 时优先用它，严格按锁文件复现版本 [理论步骤，本次未执行]
-npm install        # 同上，但会把带 ^ 的范围依赖升级（typescript / vue-tsc），见第三节的已知不兼容 [理论步骤，本次未执行]
+npm ci             # [CI 已验证] 装依赖：严格按 package-lock.json 复现版本（推荐）
+npm install        # 会把带 ^ 的范围依赖升级（typescript / vue-tsc），见第三节的已知不兼容，不推荐
 npm run dev        # [已实测] 开发服务器，默认 http://localhost:5173/
-npm run build      # [已实测] 构建静态站点（退出码 0），输出到 .vitepress/dist/
+npm run build      # [已实测] 构建静态站点，输出到 .vitepress/dist/
 npm run preview    # [已实测] 用静态服务器托管 dist，默认 http://localhost:4173/
+npm run type-check # [已实测] vue-tsc --noEmit -p tsconfig.json，检查 .ts / .vue
 ```
 
-- `dev` / `build` / `preview` 三个脚本的实际命令串分别是 `vitepress dev` / `vitepress build` /
-  `vitepress preview`（证据：`package.json` 的 `scripts` 字段）。
-- 默认端口有源码依据：`node_modules/vite/dist/node/constants.js` 第 107–108 行定义
-  `DEFAULT_DEV_PORT = 5173`、`DEFAULT_PREVIEW_PORT = 4173`。本项目未在任何配置里改端口。
+- 四条脚本的实际命令串见 `package.json` 的 `scripts` 字段。
+- 默认端口有源码依据：Vite 的 `constants.js` 定义 `DEFAULT_DEV_PORT = 5173`、
+  `DEFAULT_PREVIEW_PORT = 4173`。本项目未在任何配置里改端口。
 - 停止服务：在运行它的那个终端窗口按 `Ctrl` + `C`。
 - 阅读入口：`http://localhost:5173/`。改任意 `.md` 会热更新。
-- 本项目 `.vitepress/config.mts` 里**没有出现 `server` 配置项**（全文检索无 `server:`），
-  所以端口与监听地址都走框架默认值。「默认只监听本机」是框架层的通用行为，本次没有去
-  核实其源码默认值，因此这里只给保守做法：**不要**在日常阅读时加 `--host`
-  把开发服务器暴露到局域网——加了这个开关就一定能让同网段其他设备访问到源码，
-  而已知漏洞只影响开发服务器（见第十一节第 9 条）。
-- 另有一条 `npm run type-check`（`vue-tsc --noEmit -p tsconfig.json`），检查
-  `config.mts`、`domains.ts`、各 `_sidebar.ts` 与主题里的 `.ts` / `.vue`。
-  **[已实测] 2026-10-22 无任何输出，即零类型错误。**
-  它**不**检查课程 Markdown——`.md` 由构建期的 Markdown/Vue 编译环节负责。
+- `npm run type-check` 检查 `config.mts`、`domains.ts`、各 `_sidebar.ts` 与主题里的
+  `.ts` / `.vue`，**不**检查课程 Markdown——`.md` 由构建期的 Markdown/Vue 编译环节负责。
+- `.vitepress/config.mts` 里**没有 `server` 配置项**，端口与监听地址都走框架默认值。
+  「默认只监听本机」是框架层的通用行为，未核实其源码默认值，因此这里只给保守做法：
+  **不要**在日常阅读时加 `--host` 把开发服务器暴露到局域网——加了这个开关就一定能让
+  同网段其他设备访问到源码，而已知漏洞只影响开发服务器（见第十一节第 5 条）。
+
+提交前该跑哪些检查、判定标准是什么，见 [CONTRIBUTING.md](CONTRIBUTING.md) 第 4.3 节。
 
 ## 七、生产构建与产物目录
 
 ```powershell
-npm run build      # [已实测] 2026-10-22 退出码 0，产出完整站点
+npm run build      # [已实测] 2026-10-23 退出码 0，build complete in 79.80s
 ```
 
-- 产物目录：`.vitepress/dist/`。依据（本次实读源码，非推测）：
-  `node_modules/vitepress/dist/node/chunk-D3CUZ4fa.js` 第 17413 行定义
-  `resolve = (root, file) => path.resolve(root, '.vitepress', file)`，第 17434 行
-  `outDir = userConfig.outDir ? … : resolve(root, "dist")`——即未配置时就是
-  `<仓库根>/.vitepress/dist`；第 17429 行 `srcDir = resolve(root, userConfig.srcDir || ".")`
-  说明源目录就是仓库根。本项目 `.vitepress/config.mts` 里 `outDir` 与 `srcDir` 均未设置。
-- 如何自己确认输出路径：先读 `.vitepress/config.mts` 里有没有 `outDir`（当前没有），
-  再在构建后列目录看 `.vitepress/dist/index.html` 是否存在。本次已这样做过：
-  产物确认在 `.vitepress/dist/`，`index.html` 存在。
-- **当前磁盘状态（2026-10-22 23:43 实测）**：`.vitepress/dist/` 是**发布前清理之后重新构建的产物**，
-  `dist/index.html` 的 mtime 为 2026-10-22 23:43:47，内含 223 个 `.html`
-  （221 页 + `404.html` + `public` 原样拷进去的示例页）、447 个 `.js`、
-  14 个 `.woff2`、3 个 `.css`、`hashmap.json`，共 688 个文件、67,203,366 B；
-  其中 `assets/chunks/@localSearchIndexroot.*.js` 达 18,301,503 B，是站内搜索的离线索引。
-  上一次构建（22:26）遗留的 `dist/docs/deployment.html` 在本次构建后**不存在**（构建会清空产物目录，
-  实测 `ls .vitepress/dist/docs` 报 No such file or directory），产物里比 23:41 更早的文件只有
-  `public/examples/html-archive/` 那 2 个，且与 `public/` 源文件 `cmp` 逐字节相同——
-  它们是拷贝时间戳，不是过期内容。仓库根的 `learns-site.zip`（mtime 2026-10-16，2,420,059 B）
-  早于后续全部工作，**不能**当交付物，现已进入 `.gitignore`。判据写在 `docs/deployment.md` 第 7.2 节：
-  比时间、比数量、比内容三条，任一条不过就重新构建。
-- 构建时的死链检查：VitePress 会检查死链并在发现死链时抛错中止
-  （源码 `node_modules/vitepress/dist/node/chunk-D3CUZ4fa.js`，判定与记录在 36692–36707 行，
-  `throw new Error('N dead link(s) found.')` 在 45027 行），本项目 `config.mts` 未设
-  `ignoreDeadLinks`，即采用默认的严格模式。**本次实际构建的结果是 0 死链、退出码 0**——
-  上一版本文档记录的「1 条会触发中止的死链」已按「改成行内代码」修掉，检查开关仍然开着。
+- 产物目录：`.vitepress/dist/`。依据（实读 VitePress 源码，非推测）：未配置 `outDir` 时
+  取 `<仓库根>/.vitepress/dist`，`srcDir` 默认为仓库根。本项目 `config.mts` 里
+  `outDir` 与 `srcDir` 均未设置。
+- 如何自己确认输出路径：先看 `.vitepress/config.mts` 里有没有 `outDir`（当前没有），
+  再在构建后确认 `.vitepress/dist/index.html` 存在。
+- **[已实测] 2026-10-23 17:48–17:50 的构建结果**：退出码 0，`dist/index.html` 时间戳
+  17:49:56，产物 **688 个文件、67,258,539 B**，按扩展名分布为
+  447 个 `.js` + **223 个 `.html`** + 14 个 `.woff2` + 3 个 `.css` + 1 个 `.json`，
+  没有其它类型。223 = 221 页 + `404.html` + `public/examples/html-archive/index.html`。
+  其中 `assets/chunks/@localSearchIndexroot.*.js` 实测 18,301,438 B（约占产物 27%），
+  是站内搜索的离线索引——离线中文索引在构建时打进产物，所以纯静态托管不联网也能搜中文。
+  **稳定判据是「文件数 688 / `.html` 数 223 / 五类扩展名」，不是总字节数**：
+  字节数会因内容哈希与 `lastUpdated` 时间戳在每次构建间小幅浮动
+  （同日两次构建分别是 67,261,870 B 与 67,258,539 B，文件数与 `.html` 数完全一致）。
+  构建会**清空**产物目录后重建，所以旧的遗留页面不会残留
+  （「怎么判断 `dist/` 是不是新的」四条判据见
+  [`docs/project-file-inventory.md`](docs/project-file-inventory.md) 第 11 节）。
+- 构建时的死链检查：VitePress 会检查死链并在发现死链时抛错中止，本项目 `config.mts`
+  未设 `ignoreDeadLinks`，即采用默认的严格模式。**本次构建 0 死链、退出码 0。**
+- 构建日志里的 `Some chunks are larger than 500 kB after minification.` 来自 VitePress
+  自带的客户端运行时，不是本站代码，纯静态本地站点可忽略。
+
+### 取得构建产物：`dist.zip`
+
+不想装 Node、不想自己构建的话，可以直接取现成的构建产物压缩包：
+
+- **从 CI 取**（推荐）：打开
+  [Actions 页面](https://github.com/Flygreenbaby/learns-site/actions)，
+  进入一次成功的 `Build learning site` 运行，页面底部 Artifacts 区下载
+  `learns-site-dist-zip`（压缩包 `dist.zip`）或 `learns-site-dist`（未压缩的 `dist/` 目录）。
+  详见第十六节。
+- **从 Release 取**：打了 `v*` 标签后，CI 会把 `dist.zip` 作为附件上传到对应的
+  [GitHub Release](https://github.com/Flygreenbaby/learns-site/releases)。
+- **自己构建**：`npm ci && npm run build`，产物在 `.vitepress/dist/`。
+
+`dist.zip` 解压后得到一个 **`dist/` 目录**，把该目录整体当作站点根目录托管即可。
+部署机上**不需要 Node.js**、不需要数据库、不需要后端服务或容器编排。
 
 ## 八、本地静态部署（为什么不能双击 HTML）
 
-构建完成后，把 `.vitepress/dist/` 当作静态目录托管即可。三种本机起法
-（第 3 条**已实测**：`npm run preview` 起在 4173 通过 222 条路由断言（当时的路由集）；
-发布前清理后又在 4178 抽 12 条复验——5 个被改过的章页（`linux/command-line`、
-`linux/users-and-permissions`、`devops/git-basics`、`typescript/tsconfig`、`html/links`）
-加 `guide/how-to-use`、首页两种写法、`404.html`，共 9 条 200；
-`docs/` 两篇的 `.html` 形式与无扩展名形式共 3 条 404。**当前路由集是 221 条**，
-全量重扫本轮没做。第 1、2 条不需要 Node，属**理论步骤，本次未执行**）：
+构建完成后，把 `.vitepress/dist/` 当作静态目录托管即可。三种本机起法：
 
 ```powershell
-# 1) Python：在 dist 目录里执行，只监听本机
+# 1) Python：在 dist 目录里执行，只监听本机           [理论步骤，本机未执行]
 python -m http.server 8080 --bind 127.0.0.1
 
 # 2) 任意「解压即用」的静态托管面板（Nginx / Caddy / 宝塔等），把站点根目录指过去
 
-# 3) 装了源码的机器上，用构建链自带的预览服务
+# 3) 装了依赖的机器上，用构建链自带的预览服务          [已实测]
 npm run preview -- --port 8080
 ```
 
-**不能用 `file://` 双击打开 `index.html`。** 下表是上一轮在当时的构建产物上做的实测结论
-（2026-10-16，Chromium 150；本次未重做）：
+`npm run preview` 曾在 4173 上通过逐路由 200 断言（当时的路由集），发布前清理后又抽样复验过；
+**当前路由集是 221 条，全量重扫本轮没做**。
 
-| 检查项 | `file://` 打开 | 静态服务器托管 |
-| --- | --- | --- |
-| `document.styleSheets.length` | **0**（CSS 一张都没加载） | 正常 |
-| `<script src>` 解析结果 | `file:///D:/assets/app.*.js`（跑到磁盘根去了） | `/assets/app.*.js` |
-| 点开搜索按钮 | **搜索面板不出现** | 正常，中文可搜 |
-| 正文文字 | 能看（预渲染 HTML） | 能看 |
-
-原因有两层：产物里的资源路径是**站点根绝对路径** `/assets/...`，在 `file://` 下会解析到磁盘根；
-`app.*.js` 是 `<script type="module">`，浏览器不允许从 `file://` 加载模块。
-所以哪怕只是"自己看一天"，也要在本机起一个 HTTP 服务再访问 `http://127.0.0.1:<端口>/`。
+**不能用 `file://` 双击打开 `index.html`。** 原因有两层：产物里的资源路径是**站点根绝对路径**
+`/assets/...`，在 `file://` 下会解析到磁盘根；`app.*.js` 是 `<script type="module">`，
+浏览器不允许从 `file://` 加载模块。所以哪怕只是「自己看一天」，也要在本机起一个 HTTP 服务
+再访问 `http://127.0.0.1:<端口>/`。逐项对照表（`document.styleSheets.length`、
+`<script src>` 解析结果、搜索面板行为）见
+[`docs/deployment.md`](docs/deployment.md) 第 6 节。
 
 服务器只需满足两点：把目录请求解析到该目录下的 `index.html`（`http.server`、
 Nginx 的 `index index.html;`、各类面板都默认支持）；能正确返回 `.js` / `.css` / `.json` 的
-MIME 类型。**不需要任何重写规则**——判定依据见下一段。
-**这两点的验证范围要说清楚**：目录形式链接（如 `/vue/`）本次只在 `vitepress preview`
+MIME 类型。**不需要任何重写规则**（判据见第九节第 1 条）。
+
+**这两点的验证范围要说清楚**：目录形式链接（如 `/vue/`）只在 `vitepress preview`
 上实测返回 200；换到 Nginx、`python -m http.server`、机顶盒内置服务器或托管平台时
 「目录能否解析到该目录的 `index.html`」与「MIME 是否正确」**都未验证**——
 那是那台服务器的配置问题，不是本站产物的问题。
 
 局域网阅读：托管后其他设备访问 `http://<托管机的局域网IP>:<端口>/`。
 找 IP 用 `ipconfig`（Windows）或 `hostname -I`（Linux）。Windows 打不开通常是防火墙
-没给该端口放行入站。**这一段本次未做跨设备实测**，属理论步骤；
-机顶盒一类设备上的最短路径与三个常见拦路点写在 `docs/deployment.md` 第 8.3 节。
+没给该端口放行入站。**[理论步骤，未做跨设备实测]**；机顶盒一类设备上的最短路径与
+三个常见拦路点写在 [`docs/deployment.md`](docs/deployment.md) 第 8.3 节。
 
 ## 九、服务器部署（Nginx）：结论先行
 
 完整步骤（本机验证、局域网、Linux VPS + Nginx、免费静态托管通用流程、更新与回滚、
 故障排查表）在 [`docs/deployment.md`](docs/deployment.md)；
 两种交付包各装哪些文件在 [`docs/project-file-inventory.md`](docs/project-file-inventory.md)。
-这里只放核实出的三个关键判定：
+这里只放核实出的四个关键判定：
 
 1. **不需要 `try_files` 回退。** 依据：`config.mts` 显式设置 `cleanUrls: false`，
    产物是真实的 `*.html` 文件、页面链接也带 `.html` 后缀，任何静态服务器按文件路径就能命中，
-   不存在"路由由前端接管"的 SPA 回退需求。常见的 `try_files $uri $uri/ /index.html;`
+   不存在「路由由前端接管」的 SPA 回退需求。常见的 `try_files $uri $uri/ /index.html;`
    对本项目是多余的。
-2. **默认部署在站点根。** 配置里**没有** `base` 字段（本次已确认），资源引用按站点根绝对路径生成。
+2. **默认部署在站点根。** 配置里**没有** `base` 字段（已确认），资源引用按站点根绝对路径生成。
    若要放进子目录（如 `/learns/`），需要把 `base` 设为 `'/learns/'` 后重新构建——
-   这条**未实测**，属推断（改一处配置）。
+   **[理论步骤，未实测]**（改一处配置）。
 3. **部署机上不需要 Node.js**，产物是纯静态文件；不需要数据库、后端服务或容器编排。
-   Docker 只是可选打包方式，不是本项目的前提。
-   证据是对产物做过逐扩展名清点：发布前清理后的构建为 447 个 `.js` + 223 个 `.html` +
-   14 个 `.woff2` + 3 个 `.css` + 1 个 `.json`（共 688 个文件），没有其它类型，
-   也就没有任何需要运行时的一侧。同日更早那次构建（清理前）是 449 js / 224 html，
-   差额正好是当时唯一进过产物的那篇维护文档 `docs/deployment.html` 与它的
-   `.js` + `.lean.js` 两个页面 chunk（`docs/project-file-inventory.md` 写在那次构建之后，
-   从未进过产物），本次移出后两者都不再产出。
-   因此**不要**为了"部署一个静态站"去装开发依赖。
-4. **构建是全有或全无的。** 本次真实遇到过：一个组件标签位置写反就让整个构建中止、
+   Docker 只是可选打包方式，不是本项目的前提。证据是对产物做过逐扩展名清点：
+   只有 `.js` / `.html` / `.woff2` / `.css` / `.json` 五类（见第七节），没有任何需要运行时的一侧。
+   因此**不要**为了「部署一个静态站」去装开发依赖。
+4. **构建是全有或全无的。** 真实遇到过：一个组件标签位置写反就让整个构建中止、
    产物目录里一个页面都不更新。所以「刷新页面 404」这类现象要先确认构建到底成没成功，
-   再去看服务器——判别表在 `docs/deployment.md` 第 8.2 节。
+   再去看服务器——判别表在 [`docs/deployment.md`](docs/deployment.md) 第 8.2 节。
 
 ## 十、更新与维护
 
 改内容的正常路径：**只有 Markdown**。
 
-1. 写/改 `<领域>/<slug>.md`。规范见 `_content-plan.md` 第二节（组件用法、标题、练习数量、
-   诚实性规则、内部链接规则、篇幅）。
+1. 写/改 `<领域>/<slug>.md`。规范见 [`_content-plan.md`](_content-plan.md) 第二节
+   （组件用法、标题、练习数量、诚实性规则、内部链接规则、篇幅）。
 2. 新章要在该领域的 `_sidebar.ts` 里加一条 `{ text, link }`；同时在该领域上一章的
    `## 下一章` 里接上链接。
 3. 领域章数变化时改 `.vitepress/domains.ts` 的 `statusNote`，以及该领域首页
    `<StatusBadge note="...">`——这两处必须与磁盘一致。
-4. 校验（全部是只读脚本，`node scripts/<name>.cjs ...` 形式调用）：
+4. 校验（全部是只读脚本，`node scripts/<name>.cjs` 形式调用）：
 
    | 脚本 | 作用 | 已知盲区 |
    | --- | --- | --- |
    | `check-file.cjs` | 单篇结构：禁 frontmatter、单 H1、围栏配对与语言白名单、连续左花括号插值符、组件标签前后空行、`difficulty`/`type` 枚举、小节顺序、链接目标存在性、篇幅上下限 | 不理解语义；篇幅阈值与 `_content-plan.md` §2.1 不一致（见第十一节第 6 条） |
-   | `check-links.cjs` | 站内绝对链接（以斜杠开头的 Markdown 链接）的死链检查（含 `_sidebar.ts`）。[已实测] 2026-10-22 发布前清理后输出 `OK: no dead internal links. 241 page targets.` | **看不见相对链接**（如指向 `.scratch` 的），也不校验 `#锚点`；它硬编码的排除表只有 `README.md` 与 `TASK-HANDOFF.md`，**不知道 `config.mts` 新排除的 `docs/` 两篇**，所以仍把它们当作页面候选——若以后有正文链接指向 `/docs/…`，这个脚本会说 OK 而 `npm run build` 会中止。它说 OK 不等于全站无死链，最终以 `npm run build` 为准 |
+   | `check-links.cjs` | 站内绝对链接（以斜杠开头的 Markdown 链接）的死链检查（含 `_sidebar.ts`）。**[已实测]** 2026-10-23 输出 `OK: no dead internal links. 243 page targets.` | **看不见相对链接**，也不校验 `#锚点`；它硬编码的排除表只有 `README.md` 与 `TASK-HANDOFF.md`，**不知道 `config.mts` 后来排除的 `docs/` 两篇与 `CONTRIBUTING.md`、`CONTENT-LICENSE.md`**，所以那 4 个文件仍被当作页面候选（`243` 就是这么来的）。若以后有正文链接指向 `/docs/…` 或 `/CONTRIBUTING`，这个脚本会说 OK 而 `npm run build` 会中止。**它说 OK 不等于全站无死链，最终以 `npm run build` 为准** |
    | `status.cjs` | 按 `_content-plan.md` §一的表统计进度 | 只数表里的 187 行，html 与 css 前 4 章不在表内 |
-   | `scan-braces.cjs` | 全站扫描「连续左花括号」插值起始符（构建致命项；本表上一行为避免该符号，改用文字描述）。[已实测] 2026-10-22 跑出 3 处，**全部落在 `_author-brief.md` 与 `_content-plan.md` 里"讲解这条规则本身"的段落**，而这两个文件被 `**/_*.md` 排除、不参与构建，所以对产物无影响 | 无 |
+   | `scan-braces.cjs` | 全站扫描「连续左花括号」插值起始符（构建致命项）。**[已实测]** 2026-10-23 跑出 3 处，全部落在 `_author-brief.md` 与 `_content-plan.md` 里「讲解这条规则本身」的段落，而这两个文件被 `**/_*.md` 排除、不参与构建，对产物无影响 | 无 |
    | `gen-sidebar.cjs` / `sync-index-links.cjs` / `sync-meta.cjs` | 生成侧边栏、同步首页链接、同步元数据（**会写文件**） | 不是校验工具；改导航优先手工编辑，避免覆盖定制内容 |
 
 5. 治理文件（`_content-plan.md`、`_author-brief.md`）与 `scripts/` 下的校验脚本是规范来源，
    改内容时不要顺手改它们。
-6. 本项目**不是 Git 仓库**（无 `.git/`），没有提交历史可用；判断"哪些文件被改过"只能靠
-   文件修改时间——这也意味着 `.gitignore` **此刻完全不生效**，它只决定
-   "将来 `git init` 之后什么会被提交"。本次审出它**不排除** `.scratch/`、`learns-site.zip`
-   与 `TASK-HANDOFF.md`，而 `.scratch/` 里有含本机账户名的输出文件和演示用 `.env*` 文件。
-   **2026-10-22 发布前清理已处理**：这三条以注释形式追加在原 6 行之后，**原有规则一行未改**。
-   逐条判定写在 `docs/project-file-inventory.md` 第 9 节。
-   要纳入版本管理需自行 `git init`（本次未做）。注意 `.gitignore` 只是"提交范围"的声明，
-   真正决定公开发包内容的是打包清单（同一份清单在第 12 节）。
+6. **版本管理与提交范围**：本项目是 Git 仓库，远端
+   <https://github.com/Flygreenbaby/learns-site>，默认分支 `main`。
+   `.gitignore` **已生效**，排除 `node_modules/`、`.vitepress/dist/`、`.vitepress/cache/`、
+   `.vitepress/dist.zip`、`.scratch/`、`TASK-HANDOFF.md`、`learns-site.zip`、`*.log`、
+   `.DS_Store`、`.idea/`、`.vscode/`。判断「哪些文件被改过」用 `git status` / `git diff`，
+   **不要**再靠文件修改时间推断。逐条判定见
+   [`docs/project-file-inventory.md`](docs/project-file-inventory.md) 第 9 节。
+   注意 `.gitignore` 只是「提交范围」的声明，真正决定公开发包内容的是打包清单
+   （同一份清单在第 12 节）。
 
 ## 十一、常见问题
 
-**1. `npm install` 失败。** 本项目只需要 registry 可达；依赖面很小（3 个 devDependencies）。
-若 `npm run type-check` 报 `ERR_PACKAGE_PATH_NOT_EXPORTED: Package subpath './lib/tsc'`，
-是 TypeScript 被装成了 7.x，与 `vue-tsc@3.3.13` 不兼容，装回 `typescript@5` 即可（见第三节折叠块）。
-其余安装报错本次没有样本，不做猜测。
+**1. `npm ci` / `npm install` 失败。** 本项目只需要 registry 可达；依赖面很小
+（3 个 devDependencies）。优先用 `npm ci`。若 `npm run type-check` 报
+`ERR_PACKAGE_PATH_NOT_EXPORTED: Package subpath './lib/tsc'`，是 TypeScript 被装成了 7.x，
+与 `vue-tsc@3.3.13` 不兼容，装回 `typescript@5` 即可（见第三节折叠块）。
+其余安装报错没有样本，不做猜测。
 
 **2. 端口被占用。** `dev` 默认 5173、`preview` 默认 4173。Vite 的 dev server 在端口被占时
 会自动顺延，但 `preview` 不一定；显式指定即可：`npm run dev -- --port 5180`、
-`npm run preview -- --port 8080`（理论步骤，本次未用过显式端口）。Windows 上查谁占了端口：
-`netstat -ano | findstr :5173`。
+`npm run preview -- --port 8080`（**[理论步骤]，本机未用过显式端口**）。
+Windows 上查谁占了端口：`netstat -ano | findstr :5173`。
 
 **3. 刷新页面 404 / 白屏。** 本项目产物是 `*.html` 真实文件，正常静态托管下刷新不会 404。
-如果 404，按这三条排查（每条都对应本仓库的真实配置）：
-① 服务器有没有把 `/` 解析到 `index.html`；② 是不是把产物放进了子目录却没设置 `base`（第九节第 2 条）；
-③ 是不是用 `file://` 打开的（第八节）；④ **构建到底成功了没有**——构建是全有或全无的，
-中止时产物里一个页面都不会更新（第九节第 4 条）。
-**不需要**配 `try_files`，配上也不解决这四条。
-「构建失败」与「页面访问失败」的完整判别表在 `docs/deployment.md` 第 8.2 节。
+如果 404，按这四条排查（每条都对应本仓库的真实配置）：
+① 服务器有没有把 `/` 解析到 `index.html`；② 是不是把产物放进了子目录却没设置 `base`
+（第九节第 2 条）；③ 是不是用 `file://` 打开的（第八节）；④ **构建到底成功了没有**——
+构建是全有或全无的，中止时产物里一个页面都不会更新（第九节第 4 条）。
+**不需要**配 `try_files`，配上也不解决这四条。完整判别表在
+[`docs/deployment.md`](docs/deployment.md) 第 8.2 节。
 
 **4. 构建时报 `N dead link(s) found.`。** VitePress 的死链检查是**默认严格**的
-（`config.mts` 未设 `ignoreDeadLinks`）。它会打印出出问题的文件与链接。
-处理顺序：先改正链接写法（首选），只有在确实需要引用非页面资源时，
-才用 `ignoreDeadLinks: true` 或字符串/正则数组放行特定链接——后者会把死链检查关掉，
-不建议长期用。（本次静态复刻该检查发现的 1 条见下一条目。）
+（`config.mts` 未设 `ignoreDeadLinks`），它会打印出问题的文件与链接。
+处理顺序：先改正链接写法（首选）。只有在确实需要引用非页面资源时才考虑
+`ignoreDeadLinks: true` 或字符串/正则数组放行特定链接——那会把死链检查关掉，
+等于让以后新增的死链悄悄进不了构建日志，不建议长期用。
+本项目**没有**使用 `ignoreDeadLinks`，全站死链检查始终开着，这是刻意的。
 
-**5. 正文里的 `.scratch` 链接在站上打不开。（已修复，2026-10-22）** 原问题位置：
-`data-storage/connection-pool-and-slow-query.md:13`、`data-storage/prisma-deep-dive.md:13`、
-`data-storage/raw-sql-and-drizzle.md:15` 与 `:17`——它们是相对链接，指向点目录里的证据脚本，
-这类文件不会被构建成页面，所以线上必然不可达；其中 `raw-sql-and-drizzle.md:15` 因为链接
-末尾是 `/`、无扩展名会被当作页面候选，**会让 `npm run build` 直接抛错中止**。
-**处理方式（已采用第一种修法）**：四处链接全部改成行内代码，只保留路径文字，
-不再写成链接；`computer-science/complexity.md:15` 的"链接文字与目标不符"同批改掉；
-`html/document-structure.md:74` 的锚点指向修正为目标页真实存在的标题 id。
-**没有**使用 `ignoreDeadLinks`，全站死链检查仍然开着——这是刻意的，
-关掉它等于让以后新增的死链悄悄进不了构建日志。
-同批还修了 8 个章文件里 24 处写在 `</Exercise>` **之后**的 `<template #answer>`
-（那才是让全站 0 页产出的真凶），修法纯为标签归位、字节数不变、不动一个字的正文。
-现在 `.scratch` 在正文里全部以行内代码出现，读者仍不可达，但构建不再中止。
-另一类问题**仍未解决且本轮不擅自处理**：正文用行内代码点名的证据脚本有 **54 条在磁盘上不存在**
-（详见第四节末尾与 `docs/project-file-inventory.md` 第 8.2 节）——补齐它需要真重跑实验，
-不是文档改字能解决的。
-
-**6. 校验脚本说"太长"，但章节是合格的。** 已知两套口径不一致：`_content-plan.md` §2.1 写
-「普通章 12–20 KB、项目章 16–28 KB」，而 `check-file.cjs` 实际按 11,000–32,000 B
-（理想 14,000–30,000）与项目章 15,000–60,000 B 判定。按后者，当前 42 章超限
-（最极端 `html/accessibility.md` 67,310 B）。这些文件多早于校验脚本定稿（脚本 mtime 2026-10-18 11:00，
-超限章多为 10-16/10-17），属历史遗留而非新写内容。**先决定以哪份为准**，再决定要不要压。
-
-**7. `html/` 与部分 `css/` 章节被 `check-file.cjs` 判为"缺章节"。** 这些早期章节的小节用编号标题
-（`## 十二、练习`），而脚本要求精确匹配 `## 练习`。内容存在，只是命名约定不同；
-另有 9 处代码围栏没写语言标注、`html/forms.md` 只有 2 道练习。
-属于规范落地前留下的差异，不是内容缺失。
-
-**8. 构建出现 `Some chunks are larger than 500 kB after minification.`** 来自 VitePress 自带的
-客户端运行时，不是本站代码。纯静态本地站点可忽略。
-
-**9. `npm audit` 报 3 个漏洞（esbuild / vite / vitepress），`fixAvailable` 都是 `false`。**
-依据上一轮记录：VitePress 1.6.4 锁在 Vite 5.4.21，修复要到 Vite 6.4.3+，只能等上游。
+**5. `npm audit` 报 3 个漏洞（esbuild / vite / vitepress），`fixAvailable` 都是 `false`。**
+VitePress 1.6.4 锁在 Vite 5.4.21，修复要到 Vite 6.4.3+，只能等上游。
 这些漏洞影响的是**开发服务器**；交付物是静态文件，部署后不跑 Node 进程。
-规避：dev server 只监听 localhost、不加 `--host`。**本次未重跑 `npm audit`，该表内容属历史实测记录。**
+规避：dev server 只监听 localhost、不加 `--host`。
+**[历史实测记录，2026-10-16，未重跑 `npm audit`]**
+
+**6. 校验脚本说「太长」或「缺章节」，但章节其实是合格的。** 两套已知口径不一致：
+`_content-plan.md` §2.1 写「普通章 12–20 KB、项目章 16–28 KB」，而 `check-file.cjs`
+实际按另一套阈值判定；`html/` 与部分 `css/` 早期章节的小节用编号标题（如 `## 十二、练习`），
+而脚本要求精确匹配 `## 练习`。内容存在，只是命名约定不同。
+明细见 [`docs/project-file-inventory.md`](docs/project-file-inventory.md)；
+**先决定以哪份口径为准**，再决定要不要改。
+
+**7. CI 上构建失败，但本地能过。** 先看 Actions 日志里 `npm run build` 那一步的输出。
+CI 用的是 Node 22 + `npm ci`（严格按锁文件），本地若是 `npm install` 装出来的
+依赖树可能版本不同。第二常见原因是行尾：`.github/workflows/*.yml` 里的
+`run` 脚本含 heredoc，必须以 LF 检出，仓库已用 `.gitattributes` 钉住（见第十六节）。
 
 ## 十二、项目边界（哪些是真、哪些是示例、哪些还得你自己验）
 
-**内容的真实完成度**（本次逐文件清点，非采信脚本计数）：17 个领域全部为 `ready`，
+**内容的真实完成度**：**[已实测]** 逐文件清点，17 个领域全部为 `ready`，
 201 个章节文件全部存在于磁盘且全部挂在侧边栏；`_content-plan.md` 规划的 187 章
 标题与侧边栏文案逐字一致。`.vitepress/domains.ts` 的 17 条 `statusNote` 与各领域首页
 `<StatusBadge>` 的章数与磁盘对得上。
 
-**"已验证"的含义**：正文里的 `<Callout type="verified">` 只表示"这段机制在**本站编写环境**
-（Windows + Node v25.4.0）跑过"，每个 verified 框都写明了覆盖范围与不覆盖范围；
+**「已验证」的含义**：正文里的 `<Callout type="verified">` 只表示「这段机制在**本站编写环境**
+（Windows + Node）跑过」，每个 verified 框都写明了覆盖范围与不覆盖范围；
 `type="unverified"` 表示规范/文档级说明或产品侧内容，本机没条件验证。
-统计：142 个 verified、153 个 unverified（本次清点）。涉及 Linux、Docker、数据库服务、
-消息队列、云服务、真机调试、发布审核的章节，在本机做的是**Node 层的机制模拟**，
-不是那些软件的真实运行——这是有意的、且在章内标注的处理，不等于"已经在真实环境验证过"。
+统计（2026-10-23 清点）：144 个 verified、155 个 unverified。
+涉及 Linux、Docker、数据库服务、消息队列、云服务、真机调试、发布审核的章节，
+在本机做的是 **Node 层的机制模拟**，不是那些软件的真实运行——这是有意的、
+且在章内标注的处理，**不等于「已经在真实环境验证过」**。
 
-**文档本身的未验部分（2026-10-22 更新）**：本文件第七、八、九节与 `docs/deployment.md`
-第 0–9 节里的 `npm run build` / `type-check` / `dev` / `preview`、四条 `scripts/` 只读校验、
-产物逐扩展名清点、逐页编译复刻、dev 与 preview 上的逐路由 200 断言，**都是本次在当前文件
-状态上真跑过的**，结果写明在 `docs/deployment.md` 第 0 节那张表。
-**发布前清理之后又重跑了一次**（`type-check` 退出码 0、`npm run build` 退出码 0 / 120.60 s、
-`check-links.cjs` 0 死链、`mdcheck.mjs` 223 页 0 失败、产物隐私扫描 0 命中），
-但这一轮的 preview 只抽了 **12 条 URL** 做状态码断言（含两篇维护文档应为 404），
-没有重做上一轮那种逐路由全量 200 扫描。
-仍然**未实测**的是：**任何安装动作**（`npm install` / `npm ci`，本机依赖早已存在）、
-`python -m http.server`、`netstat`、`ipconfig`、以及 `docs/deployment.md` 第 10–11 节
-全文（`nginx -T`、`chmod -R a+rX`、`unzip`、`nginx -t && nginx -s reload`、Docker 构建与反代、
-`base: '/learns/'` 子目录部署、免费静态托管平台流程）——那些是**理论操作步骤**，
-本次没有登录或部署到任何远程机器，也没有在任何云平台上验证过。
-第八节的 `file://` 对照表、站内搜索行为、`localStorage` 内容、`public/examples/` 在 dev 与
-静态托管下的差异，以及第十一节第 9 条的漏洞表，都是**上一轮在当时的产物上做的实测**，
-本次没有重做，且当时的构建产物不含后来写完的章节。
-
-**尚未验收的部分**（本轮不做，需另开一轮）：
+**仍然未实测、需要你自己验的部分**：
 
 - **浏览器人工点击验收**：首屏 JS 水合、站内搜索框出中文结果、暗色模式切换、
-  移动端布局、侧边栏折叠、阶段项目页面上的参考实现。本次只做到 HTTP 200、
-  构建产物存在、以及产物 DOM 层面的结构性核对（200 个含练习页 / 694 个练习卡片 /
-  694 个答案体 / 0 个「暂未提供答案解析」占位）——**这些都不等于真实浏览器里点过**。
-- **目录解析与 MIME 在非 preview 宿主上的行为**：`/vue/` 这类目录链接本次只在
-  `vitepress preview` 上实测 200；Nginx、`http.server`、机顶盒内置服务器、托管平台上**未验证**。
-- **一次干净环境的安装**：`npm ci` 在全新机器上能否成功、版本能否复现，未测。
-- **全部外部链接的可达性与内容对应性**——本次清点口径：只数构建范围内页面里的
-  `[文字](http…)` 形式链接，共 **2,489 处、去重后 1,275 个 URL、涉及 134 个主机**（脚本逐文件
-  统计，2026-10-22）；页面访问修复那一轮报告里写的是 2,490 条，两处相差 1，属不同时刻重算的
-  口径差，未逐条对齐。**这些链接一条都没有联网核实**，
-  **不得因为"没报错"就认为链接有效**。
-- **正文点名的 `.scratch` 证据脚本有 54 条在磁盘上不存在**（第十一节第 5 条末尾）。
-  补齐要真重跑实验；本轮既不新建脚本冒充证据，也不删改正文引用。
-- 真实环境目标：Docker/Compose、Nginx、systemd、PostgreSQL/MySQL、Redis、RabbitMQ/Kafka、
-  对象存储与 CDN、云平台、WebSocket 经 Nginx 代理、微信小程序真机与提审发布。
-  这些都要你在有账号/有设备的真实环境里按章内验收标准自己过一遍；
-- `learns-site.zip`（10-16）仍是历史产物，不可作为交付物，现已写进 `.gitignore`。
-  `.vitepress/dist/` **是**发布前清理之后（2026-10-22 23:41–23:43）重新构建的产物，
-  221 页全部产出、`dist/docs/` 已随清空消失，按 `docs/deployment.md` 第 7.2 节那四条判据都过
-  （第 1 条已用 `find -newer` 逐文件核对：没有任何一章 `.md` 比产物新）。
-- 隐私清理：**已完成（2026-10-22）**。`devops/git-basics.md`、`devops/git-collaboration.md`、
-  `javascript/modules-and-iterators.md`、`javascript/errors-and-debugging.md`、
-  `linux/command-line.md`、`linux/users-and-permissions.md`、`backend/error-handling.md`、
-  `backend/node-runtime.md`、`css/selectors.md`、`typescript/` 三章、
-  `frontend-engineering/vite-build.md`、`html/links.md` 共 14 个章文件里的真实姓名、邮箱、
-  本机账户名与本机绝对路径已替换为占位值（41 处，逐条记录在
-  `docs/project-file-inventory.md` 第 10 节），随后重新构建。构建产物对全部六个真实值
-  **0 命中**（含 18 MB 的站内搜索索引 chunk），并用同形命令对占位值做阳性对照（命中 4/17/5 个文件）。
-  仍需人工确认的只剩私有网段 IP（`10.244.3.17` 等，出现在 5 个章文件里）与
-  `backend/logging-and-monitoring.md` 的示例 DSN——本轮按"不确定就不改"处理。
+  移动端布局、侧边栏折叠、阶段项目页面上的参考实现。已做过的只是 HTTP 200、
+  产物存在、以及产物 DOM 层面的结构性核对（含练习页数量、练习卡片与答案体配平、
+  0 个「暂未提供答案解析」占位）——**这些都不等于真实浏览器里点过**。
+- **目录解析与 MIME 在非 `preview` 宿主上的行为**（Nginx、`http.server`、
+  机顶盒内置服务器、托管平台）。
+- **全部外部链接的可达性与内容对应性**：构建范围内页面里的
+  `[文字](http…)` 形式链接共约 2,489 处、去重后约 1,275 个 URL、涉及 134 个主机
+  （2026-10-22 脚本逐文件统计）。**这些链接一条都没有联网核实**，
+  **不得因为「构建没报错」就认为链接有效**。
+- **任何远程部署**：`docs/deployment.md` 第 10–11 节全文（`nginx -T`、`chmod -R a+rX`、
+  `unzip`、`nginx -t && nginx -s reload`、Docker 构建与反代、`base: '/learns/'` 子目录部署、
+  免费静态托管平台流程）。没有登录或部署到任何远程机器，也没有在任何云平台上验证过。
+- **本机未跑过的命令**：`python -m http.server`、`netstat`、`ipconfig`。
+- **正文点名的部分 `.scratch` 证据脚本在磁盘上不存在**（第四节末尾）。
+- **真实环境目标**：Docker/Compose、Nginx、systemd、PostgreSQL/MySQL、Redis、
+  RabbitMQ/Kafka、对象存储与 CDN、云平台、WebSocket 经 Nginx 代理、
+  微信小程序真机与提审发布。这些要在有账号/有设备的真实环境里按章内验收标准自己过一遍。
+
+有一条**已经不再是理论步骤**：干净环境的安装与构建。`npm ci` + `npm run build` 在
+ubuntu-latest + Node 22 上已被 CI 成功执行（见第五、十六节）；本机 `node_modules/`
+早已存在，所以本机的安装动作仍未执行。
+
+隐私清理已完成：正文里的真实姓名、邮箱、本机账户名与本机绝对路径已替换为占位值，
+构建产物对全部真实值 0 命中（含站内搜索索引那个大 chunk），并用同形命令对占位值做过
+阳性对照。逐条记录与复扫结果见
+[`docs/project-file-inventory.md`](docs/project-file-inventory.md) 第 10 节。
+仍需人工确认的只剩私有网段 IP 与一处示例 DSN，按「不确定就不改」处理。
 
 ## 十三、内容原则
 
@@ -461,5 +485,117 @@ MIME 类型。**不需要任何重写规则**——判定依据见下一段。
 - 不转载 javascript.info 或任何第三方教程正文；`javascript/` 的 12 章是中文补充正文
   （语言层易错点、DOM 与网络、阶段项目、TypeScript 衔接），并与 javascript.info 主线配套使用。
 - 引用规范与官方文档时给可访问的官方链接，指向具体知识点。
-- 讲"为什么"和"怎么排查"，不只给结论。
-- 代码没实际跑过就明确标注"未经运行验证"，不声称测试通过。
+- 讲「为什么」和「怎么排查」，不只给结论。
+- 代码没实际跑过就明确标注「未经运行验证」，不声称测试通过。
+
+## 十四、许可
+
+本项目采用**双许可**，代码与内容分开授权：
+
+| 授权对象 | 许可证 | 文本 |
+| --- | --- | --- |
+| 程序代码（站点配置、主题组件、`_sidebar.ts`、`scripts/`、CI 工作流、工程配置） | **MIT License** | [LICENSE](LICENSE) |
+| 原创课程内容（17 个领域与 `guide/` 下的 Markdown 正文、练习与答案、教学示例 `public/examples/`） | **CC BY 4.0**（署名 4.0 国际版） | [CONTENT-LICENSE.md](CONTENT-LICENSE.md) |
+
+CC BY 4.0 允许你**转载、修改、二次发布，以及商业使用**（包括放进收费课程），
+无需另行取得授权，条件是三项：**适当署名**、**提供许可链接**、**说明修改情况**。
+署名写法示例与常见疑问见 [CONTENT-LICENSE.md](CONTENT-LICENSE.md)。
+
+**两份许可都不覆盖第三方依赖与不属于本项目的第三方材料**，它们保留各自的原有授权条件：
+
+- `package.json` 里的开发依赖（VitePress、TypeScript、vue-tsc）及其传递依赖
+  （Vite、Vue、MiniSearch 等）遵循各自上游许可证，`npm ci` 装出来的 `node_modules/`
+  不属于本项目作品；
+- 构建产物中由 VitePress 打包带入的运行时 JS/CSS 与 14 个 `inter-*.woff2` 字体文件
+  （Inter 字体采用 SIL Open Font License 1.1）；
+- 课程只以链接形式引用的外部规范、官方文档与第三方教程正文（如 javascript.info），
+  版权均归各自权利人。
+
+完整边界清单见 [CONTENT-LICENSE.md](CONTENT-LICENSE.md) 第三节。
+
+## 十五、贡献与反馈
+
+**你不需要本仓库的写权限**，也不需要被加为协作者。所有修改通过 Fork + Pull Request 提交。
+
+- 报错、失效链接、内容有误、想加新主题 → 开
+  [Issue](https://github.com/Flygreenbaby/learns-site/issues)，
+  并给出具体文件路径、实际现象与依据（官方文档链接或可复现步骤）。
+- 改错别字、修技术错误、更新失效链接、补原理说明、修死链 → **可以直接提 PR**。
+- 新增领域、大规模重写、改 `config.mts` / `domains.ts` / `scripts/`、
+  引入新依赖或改导航结构 → **请先开 Issue 讨论**。
+- 提交前请跑这 4 条项目自带的检查：`npm run type-check`、`node scripts/check-links.cjs`、
+  `node scripts/scan-braces.cjs`、`npm run build`。**`npm run build` 退出码 0 是唯一权威判据。**
+  PR 提交后 CI 也会自动跑一遍构建。
+- 内容必须准确：不得编造 API、命令输出、运行结果、测试数据或参考资料链接；
+  引用来源必须真实可查；没跑过的代码要标注验证范围，**不要声称「已测试」**。
+- 提交 PR 即表示你同意所提交的代码按 MIT、内容按 CC BY 4.0 发布。
+
+完整流程（Fork、分支命名、`npm ci`、检查判定标准、PR 描述该写什么）见
+[CONTRIBUTING.md](CONTRIBUTING.md)。
+
+## 十六、持续集成与版本发布
+
+CI 工作流是 [`.github/workflows/build.yml`](.github/workflows/build.yml)，名为
+`Build learning site`。**它只构建与打包，不部署网站、不改 GitHub Pages 设置。**
+
+**触发条件**：push 到 `main`、push `v*` 标签、向 `main` 发 Pull Request、手动 `workflow_dispatch`。
+
+**`build` job**（权限 `contents: read`）：
+
+| 步骤 | 动作 |
+| --- | --- |
+| 1 | `actions/checkout@v4` |
+| 2 | `actions/setup-node@v4`，Node 22，`cache: npm` |
+| 3 | `npm ci` |
+| 4 | `npm run build` → 产物在 `.vitepress/dist/` |
+| 5 | 上传 artifact `learns-site-dist`（未压缩的 `dist/` 目录，`if-no-files-found: error`，保留 30 天） |
+| 6 | `zip -r dist.zip dist`，并断言压缩包非空且含 `dist/index.html` |
+| 7 | 上传 artifact `learns-site-dist-zip`（即 `dist.zip`，保留 30 天） |
+
+**`release` job**（仅在 `refs/tags/v*` 上运行，`needs: build`，权限提升为 `contents: write`）：
+下载上一步的 `dist.zip` artifact，用 runner 自带的 `gh` CLI 创建 GitHub Release 并把
+`dist.zip` 作为附件上传；若该标签的 Release 已存在，则用 `--clobber` 替换附件。
+不重复构建、不引入第三方 Action。
+
+**验证状态（请如实看待）**：
+
+- **[CI 已验证]** `build` job 的 checkout → Node 22 → `npm ci` → `npm run build` → 上传 artifact
+  这条链路：2026-10-23 在 `main` 上运行**成功**（当时的工作流还没有第 6–7 步与 `release` job）。
+- **[已实测，本机]** `dist.zip` 的内容与可用性：2026-10-23 17:50 用 Python `zipfile` 按同样的
+  `dist/` 顶层结构重建，得到 **688 个文件条目、223 个 `.html`、17,285,593 B**；
+  解压到干净目录后与 `.vitepress/dist/` **逐字节相同**（`diff -rq` 无差异），
+  `dist/index.html` 存在。压缩包字节数同样会随构建小幅浮动，稳定判据是条目数与 `.html` 数。
+  本机 Git Bash **没有 `zip` 命令**（只有 `unzip`），所以本地这份是用 Python 生成的；
+  CI 上用的是 `zip -r`。两者产出的都是带 `dist/` 顶层目录的标准 ZIP，
+  差别仅在于 `zip -r` 会额外写入目录条目（本机这份 688 个条目，CI 那份会是 711 个）。
+- **[未实测]** 新增的打包步骤（第 6–7 步）与整个 `release` job **尚未在任何环境运行过**：
+  本地无法执行 GitHub Actions，也不能为了测试而擅自打标签或发布 Release。
+  其中 `Write release notes` 那一步的 heredoc 已按 YAML 字面块规则提取出来、
+  在本地用 `bash` 真实执行验证过（退出码 0，产出的 `release-notes.md` 为 35 行、
+  无缩进泄漏、代码围栏完整），`bash -n` 语法检查也通过；
+  但 `gh release create` / `gh release upload --clobber` 的远端行为只能等第一次打标签时验证。
+
+**行尾约定**：`run` 脚本里含 heredoc，若以 CRLF 检出，终止符会变成 `EOF\r` 而匹配不上，
+导致 Release 说明写残。仓库已用 [`.gitattributes`](.gitattributes) 把
+`.github/workflows/*.yml` 与 `*.sh` 钉为 `text eol=lf`，不受各人 `core.autocrlf` 影响
+（本机 `core.autocrlf=true`，提交时本就会规范化为 LF，这条是显式兜底）。
+
+### 创建 `v0.1.0` Release 还剩下的步骤
+
+CI 侧已经就绪，剩下的都是需要你在 GitHub 上操作、且无法在本地验证的动作：
+
+1. 提交并推送本轮改动到 `main`（新增 `LICENSE`、`CONTENT-LICENSE.md`、`CONTRIBUTING.md`、
+   `.gitattributes`，修改 `README.md`、`.vitepress/config.mts`、`.github/workflows/build.yml`、
+   `docs/deployment.md`、`docs/project-file-inventory.md`）。
+2. 等 `main` 上的 `Build learning site` 跑完并**确认成功**——这一步会真实验证新增的
+   `Package dist.zip` 与 `Upload dist.zip artifact` 两步；到 Actions 运行页底部确认
+   `learns-site-dist-zip` 这个 artifact 确实存在，并下载解压核对一次。
+3. 打标签并推送：`git tag v0.1.0 && git push origin v0.1.0`。这会触发 `release` job。
+4. 在 [Releases 页面](https://github.com/Flygreenbaby/learns-site/releases) 确认
+   `v0.1.0` 已创建、`dist.zip` 已作为附件上传、说明文字完整。
+5. 若第 3 步的 `release` job 失败，看日志里 `gh` 那一步的报错；`build` job 的产物已经在了，
+   修好 `release` job 后重跑该 job 即可（脚本对已存在的 Release 会走 `--clobber` 分支，
+   不会重复创建）。
+
+> 本轮**没有**执行任何提交、推送、打标签、创建 Release 或部署动作，
+> 也没有修改 GitHub Pages 设置。
