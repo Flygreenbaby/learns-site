@@ -553,9 +553,16 @@ CI 工作流是 [`.github/workflows/build.yml`](.github/workflows/build.yml)，�
 | 7 | 上传 artifact `learns-site-dist-zip`（即 `dist.zip`，保留 30 天） |
 
 **`release` job**（仅在 `refs/tags/v*` 上运行，`needs: build`，权限提升为 `contents: write`）：
-下载上一步的 `dist.zip` artifact，用 runner 自带的 `gh` CLI 创建 GitHub Release 并把
-`dist.zip` 作为附件上传；若该标签的 Release 已存在，则用 `--clobber` 替换附件。
-不重复构建、不引入第三方 Action。
+先用 `actions/checkout@v4` 检出仓库，再下载上一步的 `dist.zip` artifact，
+用 runner 自带的 `gh` CLI 创建 GitHub Release 并把 `dist.zip` 作为附件上传；
+若该标签的 Release 已存在，则用 `--clobber` 替换附件。
+不重复构建、不引入第三方 Action（`actions/checkout@v4` 与 `build` job 用的是同一个）。
+
+检出这一步是必需的：`gh` 要靠当前目录的 Git 仓库推断 owner/repo，工作目录里没有 `.git`
+时就报 `failed to run git: fatal: not a git repository (or any of the parent directories): .git`。
+它与下载 artifact 的**顺序也不能调换**——`checkout` 的 `clean` 输入默认为 `true`，
+会在 fetch 前执行 `git clean -ffdx && git reset --hard HEAD`，把未跟踪的 `package/`
+（也就是刚下载的 `dist.zip`）一并删掉。这条已在本地实测确认。
 
 **验证状态（请如实看待）**：
 
@@ -568,34 +575,65 @@ CI 工作流是 [`.github/workflows/build.yml`](.github/workflows/build.yml)，�
   本机 Git Bash **没有 `zip` 命令**（只有 `unzip`），所以本地这份是用 Python 生成的；
   CI 上用的是 `zip -r`。两者产出的都是带 `dist/` 顶层目录的标准 ZIP，
   差别仅在于 `zip -r` 会额外写入目录条目（本机这份 688 个条目，CI 那份会是 711 个）。
-- **[未实测]** 新增的打包步骤（第 6–7 步）与整个 `release` job **尚未在任何环境运行过**：
-  本地无法执行 GitHub Actions，也不能为了测试而擅自打标签或发布 Release。
-  其中 `Write release notes` 那一步的 heredoc 已按 YAML 字面块规则提取出来、
-  在本地用 `bash` 真实执行验证过（退出码 0，产出的 `release-notes.md` 为 35 行、
-  无缩进泄漏、代码围栏完整），`bash -n` 语法检查也通过；
-  但 `gh release create` / `gh release upload --clobber` 的远端行为只能等第一次打标签时验证。
+- **[CI 已验证]** 新增的第 6–7 步（`Package dist.zip`、`Upload dist.zip artifact`）：
+  随推送标签 `v0.1.0` 那次运行一起跑过并**成功**。依据有两条，都是可核对的：
+  ① `release` job 的 `if` 里没有 `always()`，而 GitHub 的规则是「如果某作业失败或跳过，
+  则所有需要它的作业都会被跳过」，所以 `release` 既然运行到了 `gh` 那一步，
+  `needs: build` 必然已经成功；② 它的报错发生在最后一步，说明前面的 `Download dist.zip`
+  没有失败，即 `learns-site-dist-zip` 这个 artifact 确实生成且可下载。
+- **[CI 已失败 → 修复待验证]** `release` job：2026-10-23 在标签 `v0.1.0` 上**真实运行过并失败**
+  （此前这里写的是「整个 `release` job 尚未在任何环境运行过」，已不成立）。失败在最后一步，
+  报错为 `failed to run git: fatal: not a git repository (or any of the parent directories): .git`，
+  原因是该 job 当时只下载 artifact、没有检出仓库，工作目录里没有 `.git`，`gh` 无从确定
+  owner/repo。修复是在 `Download dist.zip` **之前**补一步 `actions/checkout@v4`；
+  截至本文更新，这个修复还只是**未提交的工作区改动，尚未在 GitHub 上运行过**。
+- **[已实测，本机]** `Write release notes` 与 `Create or update GitHub Release` 两步的脚本：
+  按 YAML 字面块规则提取出来后，用 `bash -eo pipefail`（与 Actions 默认 shell 一致）真实执行过——
+  heredoc 产出的 `release-notes.md` 为 35 行 / 1,431 B / CR=0，无缩进泄漏、代码围栏完整，
+  `bash -n` 语法检查通过。另用一个记录 argv 的 stub `gh` 验证了两条分支的实参：Release 不存在时
+  走 `gh release create <tag> package/dist.zip --title <tag> --notes-file release-notes.md`，
+  已存在时走 `gh release upload <tag> package/dist.zip --clobber`；反向对照（把 stub 换成
+  无条件退出 7）时脚本退出码为 7，失败不会被静默吞掉。
+  **但真实 `gh` 的远端行为仍未验证**：本机没有 `gh`，也无法在本地执行 GitHub Actions，
+  只能等含修复的标签真正跑一次才知道。
 
 **行尾约定**：`run` 脚本里含 heredoc，若以 CRLF 检出，终止符会变成 `EOF\r` 而匹配不上，
 导致 Release 说明写残。仓库已用 [`.gitattributes`](.gitattributes) 把
 `.github/workflows/*.yml` 与 `*.sh` 钉为 `text eol=lf`，不受各人 `core.autocrlf` 影响
 （本机 `core.autocrlf=true`，提交时本就会规范化为 LF，这条是显式兜底）。
 
-### 创建 `v0.1.0` Release 还剩下的步骤
+### 发布第一个可用版本：`v0.1.1`
 
-CI 侧已经就绪，剩下的都是需要你在 GitHub 上操作、且无法在本地验证的动作：
+> **2026-10-23 更正**：本节原先的第 5 条写的是「修好 `release` job 后重跑该 job 即可」，
+> 这句是**错的**。GitHub 官方文档写明：重新运行工作流或其中的作业，使用的是**与原始触发事件
+> 相同的 `GITHUB_SHA`**；而每次工作流运行用的都是**该提交 SHA / Git 引用中的工作流版本**。
+> 标签 `v0.1.0` 指向提交 `0264fcf`，那个提交里的 `build.yml` 仍是坏的（`release` job 没有
+> checkout 步骤）。所以把修复推到 `main` 之后再去 Actions 页面点「Re-run failed jobs」，
+> 跑的还是旧工作流，会以同一个错误再失败一次。已实测：
+> `git show v0.1.0:.github/workflows/build.yml` 里只有 1 处 `actions/checkout@v4`
+> （第 20 行，属于 `build` job），`release` job 里没有。
 
-1. 提交并推送本轮改动到 `main`（新增 `LICENSE`、`CONTENT-LICENSE.md`、`CONTRIBUTING.md`、
-   `.gitattributes`，修改 `README.md`、`.vitepress/config.mts`、`.github/workflows/build.yml`、
-   `docs/deployment.md`、`docs/project-file-inventory.md`）。
-2. 等 `main` 上的 `Build learning site` 跑完并**确认成功**——这一步会真实验证新增的
-   `Package dist.zip` 与 `Upload dist.zip artifact` 两步；到 Actions 运行页底部确认
-   `learns-site-dist-zip` 这个 artifact 确实存在，并下载解压核对一次。
-3. 打标签并推送：`git tag v0.1.0 && git push origin v0.1.0`。这会触发 `release` job。
-4. 在 [Releases 页面](https://github.com/Flygreenbaby/learns-site/releases) 确认
-   `v0.1.0` 已创建、`dist.zip` 已作为附件上传、说明文字完整。
-5. 若第 3 步的 `release` job 失败，看日志里 `gh` 那一步的报错；`build` job 的产物已经在了，
-   修好 `release` job 后重跑该 job 即可（脚本对已存在的 Release 会走 `--clobber` 分支，
-   不会重复创建）。
+**当前状态**（均已核实）：上一轮的许可证 / README / 贡献指南 / CI 打包改动已提交为
+`0264fcf docs: clarify licensing and prepare releases` 并推送，`main` 与 `origin/main` 同步；
+`build` job（含新增的第 6–7 步）已随 `v0.1.0` 那次标签推送成功运行过；仓库里只有一个标签
+`v0.1.0`（本地与远端都指向 `0264fcf`），[Releases 页面](https://github.com/Flygreenbaby/learns-site/releases)
+**至今没有任何 Release**——那次失败发生在 `gh` 创建 Release 之前。
+`v0.1.0` 这个标签本身不需要动，留着当失败记录即可，正式发布从 `v0.1.1` 开始。
+
+**剩下的步骤**：
+
+1. 把「`release` job 补 `actions/checkout@v4`」这个修复提交并推送到 `main`
+   （截至本文更新，它还是未提交的工作区改动）。这次推送会触发一次 `main` 上的 `build` job；
+   `release` job 因为 `if: startsWith(github.ref, 'refs/tags/v')` 不会运行。
+2. 确认这次 `main` 构建成功。
+3. 在**含修复的提交**上打新标签并推送：`git tag v0.1.1 && git push origin v0.1.1`。
+   这会同时触发 `build` 与 `release` 两个 job。
+4. 回到 [Releases 页面](https://github.com/Flygreenbaby/learns-site/releases) 确认
+   `v0.1.1` 已创建、`dist.zip` 已作为附件上传、说明文字完整。
+5. 若 `release` job 仍然失败，读日志里 `gh` 那一步的报错。修完之后**同样不能靠重跑旧 run**：
+   按上面那条 SHA 规则，任何工作流改动都必须先落到标签所指的提交上才会生效——
+   要么再打一个新标签（推荐），要么把标签强制移到含修复的提交（属于重写标签，需自行确认）。
+   附件上传本身是幂等的：Release 已存在时脚本走 `--clobber` 分支，不会重复创建。
 
 > 本轮**没有**执行任何提交、推送、打标签、创建 Release 或部署动作，
 > 也没有修改 GitHub Pages 设置。

@@ -77,6 +77,22 @@ jobs:
       contents: write
 
     steps:
+      # gh 在没有显式指定仓库时，会调用 git 从当前工作目录推断 owner/repo——失败信息的
+      # 前缀 `failed to run git:` 就是这一步。本 job 原先只下载 artifact、没有检出仓库，
+      # 工作目录里根本没有 `.git`，于是报
+      # `failed to run git: fatal: not a git repository (or any of the parent directories): .git`。
+      # 检出后 origin 指向本仓库，gh 就能定位 Release。（也可用 GH_REPO 环境变量显式指定
+      # `[HOST/]OWNER/REPO`，这里不需要。）
+      #
+      # 顺序不能和下一步调换：checkout 的 clean 输入默认为 true，会在 fetch 之前执行
+      # `git clean -ffdx && git reset --hard HEAD`，而 package/ 是未跟踪目录，会被一并删掉，
+      # 导致后面 `gh release upload package/dist.zip` 找不到附件（已本地实测）。
+      # 必须「先 checkout，再下载 artifact」。
+      #
+      # 权限方面无需改动：本 job 已声明 contents: write，它涵盖 checkout 所需的 contents: read。
+      - name: Checkout source
+        uses: actions/checkout@v4
+
       - name: Download dist.zip
         uses: actions/download-artifact@v4
         with:
